@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tensor: Find the gaps. Follow the evidence.</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%20%20%20%20%3Cpath%20d%3D%22M5%207h22M16%207v19%22%20fill%3D%22none%22%20stroke%3D%22%2314213d%22%20stroke-width%3D%222.8%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%20%20%20%20%3Ccircle%20cx%3D%225%22%20cy%3D%227%22%20r%3D%223%22%20fill%3D%22%230f6f68%22%2F%3E%0A%20%20%20%20%20%20%3Ccircle%20cx%3D%2227%22%20cy%3D%227%22%20r%3D%223%22%20fill%3D%22%230f6f68%22%2F%3E%0A%20%20%20%20%20%20%3Ccircle%20cx%3D%2216%22%20cy%3D%2226%22%20r%3D%223%22%20fill%3D%22%230f6f68%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2212.5%22%20y%3D%223.5%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221.6%22%20fill%3D%22%23fffdf8%22%20stroke%3D%22%23a66b00%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%3C%2Fsvg%3E">
+<style>
+:root {
+  --bg: #faf7f0;
+  --surface: #fffdf8;
+  --ink: #14213d;
+  --muted: #475569;
+  --line: #ddd5c4;
+  --line-strong: #c4baa5;
+  --teal: #0f6f68;
+  --teal-dark: #0b5a54;
+  --teal-bg: #e0f0ed;
+  --amber: #7a4e00;
+  --amber-bg: #fbeecb;
+  --red: #9a2f2f;
+  --red-bg: #f7e3e0;
+  --grey-bg: #ece7da;
+  --radius: 6px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.55;
+}
+h1, h2, h3 { line-height: 1.25; margin: 0; }
+h1 { font-size: 1.65rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+p { margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+[tabindex="-1"]:focus { outline: none; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute; left: 8px; top: -60px; background: var(--ink); color: #fff;
+  padding: 8px 12px; border-radius: var(--radius); z-index: 100;
+}
+.skip-link:focus { top: 8px; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark { flex:none; }
+.session-notice { margin:0 0 16px; padding:9px 12px; border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:var(--radius); background:var(--surface); color:var(--muted); font-size:0.85rem; line-height:1.5; }
+.session-notice strong { color:var(--ink); }
+.brand-name { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.01em; }
+.brand-tag { color: var(--muted); font-size: 0.9rem; border-left: 1px solid var(--line); padding-left: 12px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.mode-badge {
+  display: inline-flex; flex-direction: column; line-height: 1.2;
+  border: 1px solid var(--amber); background: var(--amber-bg); color: var(--amber);
+  border-radius: var(--radius); padding: 4px 10px; font-size: 0.8rem; font-weight: 700;
+}
+.mode-badge small { font-weight: 500; font-size: 0.72rem; }
+
+/* Shell */
+.shell { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: calc(100vh - 58px); }
+.nav {
+  border-right: 1px solid var(--line);
+  padding: 24px 16px;
+  background: var(--bg);
+  position: sticky; top: 58px; align-self: start; height: calc(100vh - 58px);
+}
+.nav ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.nav-btn {
+  width: 100%; display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; align-items: center;
+  text-align: left; background: transparent; border: 1px solid transparent; border-radius: var(--radius);
+  padding: 9px 10px; cursor: pointer; min-height: 48px;
+}
+.nav-btn:hover { background: var(--grey-bg); }
+.nav-btn[aria-current="page"] { background: var(--surface); border-color: var(--line-strong); }
+.nav-num {
+  grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line-strong);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;
+}
+.nav-btn[aria-current="page"] .nav-num { background: var(--ink); border-color: var(--ink); color: #fff; }
+.nav-label { font-weight: 650; font-size: 0.95rem; }
+.nav-sub { font-size: 0.78rem; color: var(--muted); }
+
+.main { padding: 32px 32px 64px; max-width: 1140px; width: 100%; }
+.view { display: grid; gap: 22px; }
+.lead { color: var(--muted); max-width: 70ch; }
+
+/* Blocks */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.panel h2 { margin-bottom: 6px; }
+.stack { display: grid; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.notice, .error-box, .info-box {
+  border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 12px 14px; background: var(--surface);
+}
+.info-box { border-color: var(--teal); background: var(--teal-bg); }
+.notice { border-color: var(--amber); background: var(--amber-bg); color: #4d3200; }
+.error-box { border-color: var(--red); background: var(--red-bg); color: #5f1d1d; }
+.error-box ul { margin: 6px 0 0; padding-left: 20px; }
+.error-box strong, .notice strong, .info-box strong { display: block; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+/* Forms */
+.field { display: grid; gap: 6px; }
+.field > label, legend { font-weight: 650; }
+.hint { color: var(--muted); font-size: 0.875rem; }
+input[type="text"], input[type="number"], textarea {
+  width: 100%; background: #fff; border: 1px solid var(--line-strong); border-radius: var(--radius);
+  padding: 9px 11px; min-height: 44px;
+}
+textarea { resize: vertical; line-height: 1.5; font-family: var(--font); }
+input[type="number"] { max-width: 160px; }
+.form-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.form-grid > .field { min-width:0; align-content:start; }
+.form-grid input[type="text"], .form-grid input[type="number"] { height:44px; }
+.form-grid .span-2 { grid-column: 1 / -1; }
+fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin: 0; min-width: 0; background: var(--surface); }
+fieldset legend { padding: 0 6px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 8px 16px; border-radius: var(--radius);
+  border: 1px solid var(--ink); background: transparent; color: var(--ink);
+  font-weight: 650; cursor: pointer; text-decoration: none;
+}
+.btn:hover { background: var(--grey-bg); }
+.btn-primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn-primary:hover { background: var(--teal-dark); }
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-small { min-height: 38px; padding: 5px 12px; font-size: 0.9rem; }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.btn-link { border: 0; background: none; padding: 0; min-height: 0; color: var(--teal-dark); text-decoration: underline; font-weight: 600; cursor: pointer; }
+
+.pdf-row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.pdf-row:first-of-type { border-top: 0; }
+.pdf-name { font-family: var(--mono); font-size: 0.85rem; overflow-wrap: anywhere; }
+
+/* Topic editor */
+.topic-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.topic-item { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; }
+.topic-idx { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 4px;
+  font-size: 0.85rem; font-weight: 650; white-space: nowrap; border: 1px solid transparent;
+}
+.badge svg { flex: none; }
+.b-covered { background: var(--teal-bg); color: var(--teal-dark); border-color: #a9d4cf; }
+.b-partial { background: var(--amber-bg); color: var(--amber); border-color: #e3c981; }
+.b-none { background: var(--red-bg); color: var(--red); border-color: #e0b3ae; }
+.b-uncertain { background: var(--grey-bg); color: var(--ink); border-color: var(--line-strong); }
+.q-badge { background: #fff; border-color: var(--line-strong); color: var(--muted); }
+.q-badge.q-ok { border-color: var(--teal); color: var(--teal-dark); }
+.q-badge.q-bad { border-color: var(--red); color: var(--red); }
+
+/* Indicators */
+.indicators { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.bar { display: flex; height: 18px; border: 1px solid var(--line-strong); border-radius: 4px; overflow: hidden; background: #fff; margin: 12px 0; }
+.bar span { display: block; height: 100%; }
+.bar .s-covered { background: var(--teal); }
+.bar .s-partial { background: #d9a21b; }
+.bar .s-none { background: #b85c5c; }
+.bar .s-uncertain { background: #9ca3af; }
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.9rem; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+.big-num { font-size: 1.5rem; font-weight: 700; line-height: 1.2; margin: 6px 0; }
+
+/* Report layout */
+.report-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 18px; align-items: start; }
+.table-wrap { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
+table.topic-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.report-grid > * { min-width: 0; }
+.topic-table th, .topic-table td { overflow-wrap: anywhere; }
+.topic-table thead th:nth-child(1) { width: 24%; }
+.topic-table thead th:nth-child(2) { width: 25%; }
+.topic-table thead th:nth-child(3) { width: 33%; }
+.topic-table thead th:nth-child(4) { width: 18%; }
+.topic-table .badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.topic-table .btn { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.evidence { min-width: 0; }
+.topic-table th, .topic-table td { padding: 12px 14px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--line); }
+.topic-table thead th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--bg); }
+.topic-table tbody tr:last-child th, .topic-table tbody tr:last-child td { border-bottom: 0; }
+.topic-table tbody th { font-weight: 650; }
+.topic-table tr.is-selected { background: #f3efe3; box-shadow: inset 3px 0 0 var(--teal); }
+
+.evidence dl { margin: 12px 0 0; display: grid; gap: 12px; }
+.evidence dt { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
+.evidence dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.excerpt { margin: 0; padding: 10px 12px; border-left: 3px solid var(--teal); background: #fff; font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; }
+.chip { display: inline-block; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 7px; color: var(--muted); background: var(--bg); }
+
+/* Quiz */
+.q-block { display: grid; gap: 10px; }
+.q-block legend { font-weight: 650; padding-bottom: 6px; }
+.options { display: grid; gap: 8px; }
+.option { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; cursor: pointer; }
+.option:hover { border-color: var(--line-strong); }
+.option input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--teal); }
+.option.is-chosen { border-color: var(--ink); }
+.option.is-right { border-color: var(--teal); background: var(--teal-bg); }
+.option.is-wrong { border-color: var(--red); background: var(--red-bg); }
+.feedback { padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--bg); }
+.feedback.f-ok { border-color: var(--teal); }
+.feedback.f-bad { border-color: var(--red); }
+.feedback strong { margin-right: 6px; }
+
+/* Plan */
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.plan-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 8px; }
+.plan-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.plan-rank { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+.plan-min { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.plan-item ul { margin: 0; padding-left: 20px; }
+.plan-src { font-size: 0.875rem; color: var(--muted); }
+
+/* Empty / loading */
+.empty { text-align: center; padding: 40px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface); display: grid; gap: 12px; justify-items: center; }
+.empty p { max-width: 52ch; color: var(--muted); }
+.loading { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); }
+.loading .bar-ind { width: 40px; height: 4px; background: var(--teal); border-radius: 2px; }
+
+dialog { border: 1px solid var(--ink); border-radius: var(--radius); padding: 22px; max-width: 420px; background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgba(20, 33, 61, 0.45); }
+dialog h2 { margin-bottom: 8px; }
+dialog .row { margin-top: 18px; justify-content: flex-end; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .report-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .topbar { padding: 8px 14px; gap: 10px; }
+  .brand-tag, .mode-badge small { display: none; }
+  .shell { display: block; }
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: auto; z-index: 30;
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom)); background: var(--surface); border-right: 0; border-top: 1px solid var(--line-strong);
+  }
+  .nav ol { grid-template-columns: repeat(5, 1fr); gap: 2px; }
+  .nav-btn { grid-template-columns: 1fr; justify-items: center; row-gap: 2px; padding: 6px 2px; text-align: center; }
+  .nav-num { grid-row: auto; width: 24px; height: 24px; }
+  .nav-label { font-size: 0.75rem; }
+  .nav-sub { display: none; }
+  .main { padding: 22px 16px 110px; }
+  h1 { font-size: 1.4rem; }
+  .form-grid, .indicators { grid-template-columns: 1fr; }
+  .pdf-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .table-wrap { border: 0; background: transparent; overflow: visible; }
+  .topic-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .topic-table, .topic-table tbody, .topic-table tr, .topic-table th, .topic-table td { display: block; width: 100%; }
+  .topic-table tr { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; padding: 6px 4px; }
+  .topic-table tr.is-selected { box-shadow: inset 3px 0 0 var(--teal); }
+  .topic-table th, .topic-table td { border-bottom: 0 !important; padding: 6px 12px; }
+  .topic-table td { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; }
+  .topic-table td::before { content: attr(data-label); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
+  .badge { white-space: normal; }
+  .topic-item { grid-template-columns: 1fr auto; }
+  .topic-idx { display: none; }
+  .btn { width: auto; }
+}
+select { max-width:100%; padding:10px; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--surface); }
+.roadmap-layout { display:grid; grid-template-columns:minmax(240px, 0.85fr) minmax(0, 1.3fr); gap:20px; align-items:start; }
+.roadmap-route { list-style:none; padding:0; margin:0; }
+.route-node { width:100%; text-align:left; display:grid; gap:10px; padding:16px; background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius); cursor:pointer; }
+.route-node:hover { border-color:var(--teal); }
+.route-selected { border:2px solid var(--teal); background:var(--teal-bg); }
+.route-node .badge { width:fit-content; white-space:normal; }
+.route-connector { color:var(--teal); text-align:center; height:30px; padding-top:3px; }
+.study-check { display:flex; gap:8px; align-items:center; font-size:0.85rem; padding:8px 2px; }
+.study-check input { width:18px; height:18px; accent-color:var(--teal); }
+@media(max-width:860px) { .roadmap-layout { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#view-root">Skip to content</a>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <path d="M5 7h22M16 7v19" fill="none" stroke="#14213d" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="5" cy="7" r="3" fill="#0f6f68"/>
+      <circle cx="27" cy="7" r="3" fill="#0f6f68"/>
+      <circle cx="16" cy="26" r="3" fill="#0f6f68"/>
+      <rect x="12.5" y="3.5" width="7" height="7" rx="1.6" fill="#fffdf8" stroke="#a66b00" stroke-width="2"/>
+    </svg>
+    <span class="brand-name">Tensor</span>
+    <span class="brand-tag">Find the gaps. Follow the evidence.</span>
+  </div>
+  <div class="topbar-right">
+    <span class="mode-badge" role="status">Sample mode<small>Synthetic data, no AI or backend</small></span>
+    <button type="button" class="btn btn-small" id="reset-btn">Reset</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="nav" aria-label="Workflow steps" id="nav"></nav>
+  <main class="main" id="view-root"></main>
+</div>
+
+<dialog id="reset-dialog" aria-labelledby="reset-title">
+  <form method="dialog">
+    <h2 id="reset-title">Reset the prototype?</h2>
+    <p>This clears your inputs, edited topics, quiz answers and recheck result, and returns you to the Inputs step. The sample dataset itself is not affected.</p>
+    <div class="row">
+      <button class="btn" value="cancel" type="submit">Cancel</button>
+      <button class="btn btn-danger" value="confirm" type="submit" id="reset-confirm">Reset everything</button>
+    </div>
+  </form>
+</dialog>
+
+<noscript><p style="padding:24px">Tensor needs JavaScript enabled to run this prototype.</p></noscript>
+
+<!-- ===================================================================
+     TensorService: sample data + data access.
+     Everything below is synthetic. Each method notes the FastAPI endpoint
+     that will replace it. The UI code only talks to this object.
+     =================================================================== -->
+<script id="tensor-service">
+const TensorService = (() => {
+  'use strict';
+
+  const DOC = 'Sample_Java_OOP_Notes.pdf (synthetic)';
+
+  const SAMPLE_INPUTS = {
+    course: 'Java 17 Object-Oriented Programming, Unit 3 (sample)',
+    minutes: '45',
+    syllabus: [
+      'Unit 3: Object-Oriented Programming in Java',
+      '3.1 Classes and objects: fields, methods, instances',
+      '3.2 Constructors: default and parameterised constructors',
+      '3.3 Encapsulation: private fields, getters and setters',
+      '3.4 Inheritance: extends, super and constructor chaining',
+      '3.5 Method overriding: redefining inherited methods',
+      '3.6 Polymorphism: parent-type references to child objects'
+    ].join('\n'),
+    notes: [
+      '[Page 2] Classes and objects',
+      'A class is a blueprint that defines fields and methods. An object is an instance of a class, created with the new keyword. Each object keeps its own copy of the instance fields.',
+      '',
+      '[Page 4] Constructors',
+      'A constructor has the same name as its class and no return type. It runs when an object is created with new and is used to initialise fields. A parameterised constructor accepts arguments, for example Point(int x, int y), to initialise fields with supplied values. If a class defines no constructor, the compiler supplies a default no-argument constructor.',
+      '',
+      '[Page 6] Encapsulation',
+      'Encapsulation keeps fields private and exposes controlled access through public getter and setter methods. A setter can validate input before it changes the field.',
+      '',
+      '[Page 8] Inheritance',
+      'A subclass inherits fields and methods from its superclass using the extends keyword. Example: class Dog extends Animal.',
+      '',
+      '[Page 10] Polymorphism',
+      'A variable of a parent type can refer to an object of a child type. Code written against the parent type can work with any child object.'
+    ].join('\n')
+  };
+
+  const TOPICS = [
+    { id: 't1', name: 'Classes and objects', syllabusRef: 'Syllabus 3.1', coverage: 'covered', gap: '',
+      evidence: { doc: DOC, page: 2,
+        excerpt: 'A class is a blueprint that defines fields and methods. An object is an instance of a class, created with the new keyword.',
+        explanation: 'The notes define both terms and describe how an instance is created.' } },
+    { id: 't2', name: 'Constructors', syllabusRef: 'Syllabus 3.2', coverage: 'covered', gap: '',
+      evidence: { doc: DOC, page: 4,
+        excerpt: 'A constructor has the same name as its class and no return type. It runs when an object is created with new and is used to initialise fields. A parameterised constructor accepts arguments, for example Point(int x, int y), to initialise fields with supplied values. If a class defines no constructor, the compiler supplies a default no-argument constructor.',
+        explanation: 'The notes give the naming rule, the missing return type and the default constructor.' } },
+    { id: 't3', name: 'Encapsulation', syllabusRef: 'Syllabus 3.3', coverage: 'covered', gap: '',
+      evidence: { doc: DOC, page: 6,
+        excerpt: 'Encapsulation keeps fields private and exposes controlled access through public getter and setter methods. A setter can validate input before it changes the field.',
+        explanation: 'The notes explain private fields, getters and setters, and validation in a setter.' } },
+    { id: 't4', name: 'Inheritance', syllabusRef: 'Syllabus 3.4', coverage: 'partial',
+      gap: 'The notes do not explain super(...) or constructor chaining.',
+      evidence: { doc: DOC, page: 8,
+        excerpt: 'A subclass inherits fields and methods from its superclass using the extends keyword. Example: class Dog extends Animal.',
+        explanation: 'The notes introduce the extends keyword, but the syllabus also lists super and constructor chaining, which no passage explains.' } },
+    { id: 't5', name: 'Method overriding', syllabusRef: 'Syllabus 3.5', coverage: 'none',
+      gap: 'No passage explains redefining an inherited method.',
+      evidence: { doc: DOC, page: null,
+        excerpt: null,
+        explanation: 'No passage in the sample notes describes a subclass providing its own version of an inherited method. This says the notes cannot help here. It does not say what the student knows.' } },
+    { id: 't6', name: 'Polymorphism', syllabusRef: 'Syllabus 3.6', coverage: 'covered', gap: '',
+      evidence: { doc: DOC, page: 10,
+        excerpt: 'A variable of a parent type can refer to an object of a child type. Code written against the parent type can work with any child object.',
+        explanation: 'The notes explain parent-type variables referring to child objects. They do not explain overriding, which polymorphism examples usually rely on.' } }
+  ];
+
+  const QUIZ = [
+    { id: 'q1', topicId: 't2',
+      prompt: 'Which statement about a Java constructor is correct?',
+      options: [
+        'It must declare void as its return type.',
+        'It has the same name as its class and no return type.',
+        'It can only be called after the object has been created.',
+        'Every class must define one explicitly.'
+      ],
+      explanation: 'A constructor shares its class name and has no return type, not even void.' },
+    { id: 'q2', topicId: 't3',
+      prompt: 'A class declares "private int balance;". What is the standard way to let other classes read it?',
+      options: [
+        'Make balance public so other classes can read it.',
+        'Declare balance static.',
+        'Add a public getBalance() method that returns it.',
+        'Remove the private modifier in each subclass.'
+      ],
+      explanation: 'Keeping the field private and exposing a public getter controls access. A public field would let any class change it.' },
+    { id: 'q3', topicId: 't4',
+      prompt: 'Class Animal has only the constructor Animal(String name). Class Dog extends Animal. What must the Dog constructor do?',
+      options: [
+        'Nothing. Java fills in the name automatically.',
+        'Call this(name) before anything else.',
+        'Declare Animal\'s constructor static.',
+        'Call super(name) as its first statement.'
+      ],
+      explanation: 'A subclass constructor must call a matching superclass constructor. Animal only has Animal(String), so Dog must call super(name) first.' },
+    { id: 'q4', topicId: 't5',
+      prompt: 'Which description of method overriding is correct?',
+      options: [
+        'Two methods in one class share a name but take different parameters.',
+        'A subclass supplies its own version of an inherited method with the same signature.',
+        'A subclass hides its parent\'s private fields.',
+        'A method calls itself until a condition is met.'
+      ],
+      explanation: 'Overriding means a subclass gives its own implementation of an inherited method with the same signature. The first option describes overloading.' }
+  ];
+  const QUIZ_KEY = { q1: 1, q2: 2, q3: 3, q4: 1 };
+
+  QUIZ.push(...[
+  {
+    "id": "q5",
+    "topicId": "t1",
+    "prompt": "What does a Java class define?",
+    "options": [
+      "A type with fields and methods",
+      "Only one specific object in memory",
+      "A running JVM process",
+      "Only primitive values"
+    ],
+    "explanation": "A class defines a reference type, including its fields and methods."
+  },
+  {
+    "id": "q6",
+    "topicId": "t1",
+    "prompt": "Two Counter objects each have an instance field count. Changing the first object's count normally changes which value?",
+    "options": [
+      "Both objects' instance fields",
+      "Only the first object's field",
+      "Only the second object's field",
+      "The class definition"
+    ],
+    "explanation": "Separate objects have separate instance-field state, unless they refer to shared mutable data."
+  },
+  {
+    "id": "q7",
+    "topicId": "t1",
+    "prompt": "Which field is shared by instances of a Java class?",
+    "options": [
+      "A local variable",
+      "An instance field",
+      "A static field",
+      "A constructor parameter"
+    ],
+    "explanation": "A static field belongs to the class rather than each individual instance."
+  },
+  {
+    "id": "q8",
+    "topicId": "t1",
+    "prompt": "Box a = new Box(); Box b = a; b.value = 7; What is a.value, assuming value is an accessible int field?",
+    "options": [
+      "0",
+      "7",
+      "null",
+      "The assignment always fails to compile"
+    ],
+    "explanation": "a and b refer to the same Box object, so the field update is visible through either reference."
+  },
+  {
+    "id": "q9",
+    "topicId": "t2",
+    "prompt": "Inside Point(int x), which statement assigns parameter x to the current object's field x?",
+    "options": [
+      "x = x;",
+      "Point.x = x;",
+      "this.x = x;",
+      "new x = this;"
+    ],
+    "explanation": "this.x identifies the instance field; x alone refers to the parameter in this constructor."
+  },
+  {
+    "id": "q10",
+    "topicId": "t2",
+    "prompt": "How can two constructors in the same Java class be overloaded?",
+    "options": [
+      "Give them different return types",
+      "Give them different parameter lists",
+      "Give them different class names",
+      "Mark both static"
+    ],
+    "explanation": "Constructors are overloaded through different parameter lists, not return types."
+  },
+  {
+    "id": "q11",
+    "topicId": "t2",
+    "prompt": "Which statement about a private Java constructor is correct?",
+    "options": [
+      "Java forbids private constructors",
+      "It prevents direct construction from unrelated outside classes",
+      "It automatically makes every field private",
+      "It must return a new object explicitly"
+    ],
+    "explanation": "An unrelated outside class cannot directly invoke a private constructor; code with permitted private access can."
+  },
+  {
+    "id": "q12",
+    "topicId": "t3",
+    "prompt": "Can a public instance getter return the value of a private instance field declared in its own class?",
+    "options": [
+      "Yes, the method can access its class's private field",
+      "No, private fields cannot be read by any method",
+      "Only if the field is static",
+      "Only if the class has no constructor"
+    ],
+    "explanation": "Methods of the declaring class can access its private fields and expose controlled access."
+  },
+  {
+    "id": "q13",
+    "topicId": "t3",
+    "prompt": "Account has private int balance. An unrelated class writes account.balance = 100. What happens?",
+    "options": [
+      "It always succeeds",
+      "It changes every Account object",
+      "It fails to compile because balance is private",
+      "It automatically calls a setter"
+    ],
+    "explanation": "Direct private-field access from an unrelated class is not permitted. Java does not automatically invoke a setter."
+  },
+  {
+    "id": "q14",
+    "topicId": "t4",
+    "prompt": "How many direct superclass classes can an ordinary Java class extend?",
+    "options": [
+      "Zero or one",
+      "Exactly two",
+      "Any number",
+      "One for each constructor"
+    ],
+    "explanation": "Java permits a class to extend one direct superclass. This differs from implementing multiple interfaces."
+  },
+  {
+    "id": "q15",
+    "topicId": "t4",
+    "prompt": "Are superclass constructors inherited as subclass constructors?",
+    "options": [
+      "Yes, every constructor is inherited",
+      "Only public constructors are inherited",
+      "No; subclass constructors may invoke superclass constructors",
+      "Only constructors with no arguments are inherited"
+    ],
+    "explanation": "Constructors are not inherited. A subclass constructor can invoke an accessible superclass constructor using super(...)."
+  },
+  {
+    "id": "q16",
+    "topicId": "t5",
+    "prompt": "What does @Override help the Java compiler check?",
+    "options": [
+      "That the method is always faster",
+      "That the method overrides or implements a method from a supertype",
+      "That the method has no parameters",
+      "That the method is a constructor"
+    ],
+    "explanation": "The compiler reports an error if a method annotated @Override does not override or implement a suitable supertype method."
+  },
+  {
+    "id": "q17",
+    "topicId": "t5",
+    "prompt": "A subclass declares a static method with the same signature as an accessible static superclass method. What is this called?",
+    "options": [
+      "Instance-method overriding",
+      "Constructor chaining",
+      "Method hiding",
+      "Object creation"
+    ],
+    "explanation": "Static methods are hidden rather than overridden through instance-method runtime dispatch."
+  },
+  {
+    "id": "q18",
+    "topicId": "t6",
+    "prompt": "Dog extends Animal. A method accepts an Animal parameter. Can a Dog object be passed to it?",
+    "options": [
+      "Yes, a Dog is an Animal subtype",
+      "No, argument classes must always match exactly",
+      "Only if Animal has no methods",
+      "Only if Dog is static"
+    ],
+    "explanation": "A reference to a subtype object can be passed where its supertype is expected."
+  },
+  {
+    "id": "q19",
+    "topicId": "t6",
+    "prompt": "Animal a = new Animal(); Dog d = (Dog) a; Assume Dog extends Animal. What happens at the cast?",
+    "options": [
+      "The Animal object becomes a Dog",
+      "A new Dog is created",
+      "A ClassCastException is thrown",
+      "The cast must always succeed"
+    ],
+    "explanation": "The actual object is an Animal, not a Dog. The explicit downcast compiles but fails at runtime."
+  },
+  {
+    "id": "q20",
+    "topicId": "t6",
+    "prompt": "Animal a = new Dog(); Only Dog declares fetch(). Does a.fetch() compile when Animal has no fetch()?",
+    "options": [
+      "Yes, every Dog method is visible through a",
+      "No, accessible members are checked using the reference's declared type",
+      "Yes, if fetch() returns void",
+      "Yes, because constructors are inherited"
+    ],
+    "explanation": "The declared type Animal must provide an accessible fetch() for this call to compile. Runtime dispatch does not add child-only methods to the parent type."
+  }
+]);
+  Object.assign(QUIZ_KEY, {"q5": 0, "q6": 1, "q7": 2, "q8": 1, "q9": 2, "q10": 1, "q11": 1, "q12": 0, "q13": 2, "q14": 0, "q15": 2, "q16": 1, "q17": 2, "q18": 0, "q19": 2, "q20": 1});
+
+  const FOLLOW = {
+    t2: { prompt: 'A class declares only the constructor Point(int x, int y). What happens when code calls new Point()?',
+      options: [
+        'It compiles, using a default no-argument constructor.',
+        'It compiles and sets x and y to null.',
+        'It fails to compile, because defining any constructor removes the default one.',
+        'It compiles but throws an error at runtime when the object is used.'
+      ],
+      explanation: 'The compiler only supplies a default constructor when the class defines none. Point(int, int) removes it.' },
+    t3: { prompt: 'A class must never hold a negative age. Which design best protects that rule?',
+      options: [
+        'Make age private and have the setter reject negative values.',
+        'Make age public and document the rule in a comment.',
+        'Declare age static.',
+        'Declare the class final.'
+      ],
+      explanation: 'A private field with a validating setter is the only option that enforces the rule in code.' },
+    t4: { prompt: 'Vehicle declares only Vehicle(int wheels). Car extends Vehicle and declares Car() { } with no explicit super call. What happens?',
+      options: [
+        'It compiles; wheels defaults to 0.',
+        'It compiles; Java picks Vehicle(int) automatically.',
+        'It fails to compile, because Car may not extend Vehicle.',
+        'It fails to compile, because the implicit super() finds no no-argument Vehicle constructor.'
+      ],
+      explanation: 'Without an explicit call, Java inserts super(). Vehicle has no no-argument constructor, so compilation fails.' },
+    t5: { prompt: 'Shape has void draw(). Circle extends Shape and declares void draw(int size). Is Circle.draw(int) an override of Shape.draw()?',
+      options: [
+        'Yes, because the method names match.',
+        'No, the parameter lists differ, so it is a separate overload.',
+        'Yes, because Circle extends Shape.',
+        'No, because Java does not allow a subclass to declare draw.'
+      ],
+      explanation: 'An override needs the same name and parameter list. Different parameters make draw(int) an overload.' }
+  };
+  const FOLLOW_KEY = { t2: 2, t3: 0, t4: 3, t5: 1 };
+
+  Object.assign(FOLLOW, {"t1": {"prompt": "Student a = new Student(); Student b = new Student(); How many objects do these two new expressions create?", "options": ["Zero", "One", "Two", "It depends on the number of methods"], "explanation": "Each new Student() expression creates a separate Student object."}, "t6": {"prompt": "Animal a = new Dog(); Dog overrides Animal.speak(). Which implementation runs when a.speak() is called?", "options": ["Always Animal.speak()", "Dog.speak(), through runtime dispatch", "Both automatically", "Neither implementation"], "explanation": "An overridden instance method is selected using the runtime object type, which is Dog."}});
+  Object.assign(FOLLOW_KEY, {t1:2,t6:1});
+
+  function selectSampleQuestions(count) {
+    const groups = TOPICS.map(t => QUIZ.filter(q => q.topicId === t.id));
+    const ordered = [];
+    for (let round=0; ordered.length<QUIZ.length; round++) {
+      for (const group of groups) if (group[round]) ordered.push(group[round]);
+    }
+    return ordered.slice(0, count === 20 ? 20 : 10);
+  }
+  function summarizeAnswers(items) {
+    const groups = new Map();
+    for (const item of items) {
+      if (!groups.has(item.topicId)) groups.set(item.topicId, []);
+      groups.get(item.topicId).push(item);
+    }
+    return [...groups].map(([topicId, answers]) => ({topicId, total:answers.length,
+      correctCount:answers.filter(a=>a.isCorrect).length, isCorrect:answers.every(a=>a.isCorrect)}));
+  }
+
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
+  return {
+    DOC,
+    activeJob: null,
+
+    async uploadPdf(file, kind) {
+      const form = new FormData(); form.append('file', file); form.append('kind', kind);
+      const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 120000);
+      try {
+        const response = await fetch('/api/documents/pdf', { method: 'POST', body: form, signal: controller.signal });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          const detail = data && data.detail;
+          throw new Error(Array.isArray(detail) ? detail.map((x) => x.msg || 'Invalid upload').join('; ')
+            : (typeof detail === 'string' ? detail : 'PDF upload failed (' + response.status + ').'));
+        }
+        if (!data || !data.document_id || typeof data.text !== 'string' || !Array.isArray(data.pages))
+          throw new Error('The server returned invalid PDF extraction data.');
+        return data;
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('PDF extraction timed out. Try a smaller document.');
+        throw error;
+      } finally { clearTimeout(timer); }
+    },
+
+    async callAPI(path, payload) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      try {
+        const response = await fetch(path, { method: payload === undefined ? 'GET' : 'POST',
+          headers: payload === undefined ? {} : { 'Content-Type': 'application/json' },
+          body: payload === undefined ? undefined : JSON.stringify(payload), signal: controller.signal });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          const detail = data && data.detail;
+          throw new Error(Array.isArray(detail) ? detail.map((x) => x.msg || 'Invalid input').join('; ')
+            : (typeof detail === 'string' ? detail : 'Request failed (' + response.status + ').'));
+        }
+        if (!data) throw new Error('The backend returned an empty response.');
+        return data;
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('Request timed out. Check the server.');
+        throw error;
+      } finally { clearTimeout(timer); }
+    },
+
+    async cancelActiveJob() {
+      const id = this.activeJob;
+      if (!id) return;
+      return this.callAPI('/api/jobs/' + encodeURIComponent(id) + '/cancel', {});
+    },
+
+    async runJob(operation, payload, onProgress) {
+      const began = Date.now();
+      const started = await this.callAPI('/api/jobs/' + operation, payload);
+      if (!started.job_id) throw new Error('The server did not return an analysis job ID.');
+      const id = started.job_id;
+      this.activeJob = id;
+      const limits = {extract:180,coverage:300,quiz:300,check:35};
+      const limit = Math.min(started.time_limit_seconds || limits[operation] || 180, limits[operation] || 180);
+      const deadline = began + limit*1000 + 10000;
+      try {
+        while (Date.now() < deadline) {
+          const job = await this.callAPI('/api/jobs/' + encodeURIComponent(id));
+          const elapsed = Number.isFinite(job.elapsed_seconds) ? job.elapsed_seconds : Math.floor((Date.now()-began)/1000);
+          if (onProgress && onProgress((job.progress || 'Processing…') + ' · ' + elapsed + 's / ' + limit + 's limit') === false) {
+            await this.callAPI('/api/jobs/' + encodeURIComponent(id) + '/cancel', {}).catch(()=>{});
+            throw new Error('Analysis view changed. The old job was asked to stop.');
+          }
+          if (job.status === 'failed') throw new Error(job.error || 'Analysis failed.');
+          if (job.status === 'cancelled') throw new Error('Analysis stopped. Your inputs are kept.');
+          if (job.status === 'completed') return job.result;
+          await wait(1000);
+        }
+        await this.callAPI('/api/jobs/' + encodeURIComponent(id) + '/cancel', {}).catch(()=>{});
+        throw new Error('Analysis reached its time limit. Your inputs are kept. Enter topics manually or try the labelled sample demo.');
+      } finally {
+        if (this.activeJob === id) this.activeJob = null;
+      }
+    },
+
+    async analyzeCoverage(inputs, topics, onProgress) {
+      const data = await this.runJob('coverage', {
+        course: inputs.course, notes: inputs.notes, notes_document_id: inputs.notesDocumentId || null,
+        topics: topics.map((t) => ({id:t.id, name:t.name, syllabus_excerpt:t.source_verified ? (t.syllabus_excerpt || '') : ''}))
+      }, onProgress);
+      if (!data || data.mode !== 'live' || !Array.isArray(data.topics) || !Array.isArray(data.passages)
+          || data.topics.length !== topics.length) throw new Error('The backend returned an incomplete coverage report.');
+      const ids = new Set(data.topics.map(t => t.id));
+      if (ids.size !== topics.length || topics.some(t => !ids.has(t.id))) throw new Error('Mismatched coverage topic IDs.');
+      if (data.topics.some(t => !['covered','partial','none','uncertain'].includes(t.coverage) || !t.evidence))
+        throw new Error('Invalid coverage data.');
+      return data;
+    },
+
+    async extractTopics(inputs, onProgress) {
+      const data = await this.runJob('extract', {course:inputs.course, syllabus:inputs.syllabus,
+        syllabus_document_id:inputs.syllabusDocumentId || null}, onProgress);
+      if (!data || data.mode !== 'live' || !Array.isArray(data.topics) || !data.topics.length)
+        throw new Error('The backend returned no usable topic list.');
+      if (data.topics.some(t => !t.id || typeof t.name !== 'string' || typeof t.syllabus_excerpt !== 'string' || t.source_verified !== true))
+        throw new Error('The backend returned unverified topic data.');
+      return data;
+    },
+
+    // FastAPI later: GET /api/sample
+    getSampleInputs() { return clone(SAMPLE_INPUTS); },
+
+    // True when the user's text matches the built-in sample. Used only to tell
+    // the user honestly when their own text was NOT what the preview analysed.
+    isSampleInput(inputs) {
+      return norm(inputs.syllabus) === norm(SAMPLE_INPUTS.syllabus) &&
+             norm(inputs.notes) === norm(SAMPLE_INPUTS.notes);
+    },
+
+    // FastAPI later: POST /api/analyze  (syllabus, notes, pdf uploads)
+    // Prototype: always returns the built-in sample topics, whatever the inputs were.
+    async preparePreview(/* inputs */) {
+      await wait(50);
+      return { mode: 'sample', topics: clone(TOPICS) };
+    },
+
+    // FastAPI later: GET /api/topics/extracted
+    getSampleTopics() { return clone(TOPICS); },
+
+    // FastAPI later: GET /api/quiz  (answer key stays server-side)
+    getQuiz(count = 10) { return clone(selectSampleQuestions(count)); },
+    summarizeAnswers,
+
+    // FastAPI later: POST /api/quiz/score
+    scoreQuiz(answers, count = 10) {
+      const items = selectSampleQuestions(count).map((q) => {
+        const chosen = answers[q.id];
+        const correctIndex = QUIZ_KEY[q.id];
+        return { questionId: q.id, topicId: q.topicId, chosen, correctIndex,
+                 isCorrect: chosen === correctIndex, explanation: q.explanation };
+      });
+      return { total: items.length, correctCount: items.filter((i) => i.isCorrect).length, items };
+    },
+
+    // FastAPI later: POST /api/recheck/question, POST /api/recheck/score
+    hasFollowUp(topicId) { return Object.prototype.hasOwnProperty.call(FOLLOW, topicId); },
+    getFollowUp(topicId) { return FOLLOW[topicId] ? clone(FOLLOW[topicId]) : null; },
+    checkFollowUp(topicId, choice) {
+      const correctIndex = FOLLOW_KEY[topicId];
+      return { isCorrect: choice === correctIndex, correctIndex, explanation: FOLLOW[topicId].explanation };
+    },
+
+    // FastAPI later: POST /api/plan
+    // Weights: notes coverage gap (none 3, partial 2, uncertain 2) plus 3 if the
+    // diagnostic answer for that topic was incorrect. Minutes come in 5-minute
+    // units and never sum to more than the available time.
+    buildPlan({ topics, quizResult, minutes }) {
+      const W = { covered: 0, partial: 2, none: 3, uncertain: 2 };
+      const qmap = new Map(summarizeAnswers(quizResult ? quizResult.items : []).map((x) => [x.topicId, x]));
+      const flagged = topics.map((topic, order) => {
+        const quizItem = qmap.get(topic.id) || null;
+        return { topic, quizItem, order, score: W[topic.coverage] + (quizItem && !quizItem.isCorrect ? 3 : 0) };
+      }).filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score || a.order - b.order);
+
+      const units = Math.max(0, Math.floor(minutes / 5));
+      const chosen = flagged.slice(0, units);
+      const omitted = flagged.length - chosen.length;
+      if (!chosen.length) return { items: [], omitted, flaggedCount: flagged.length, totalMinutes: 0 };
+
+      const spare = units - chosen.length;
+      const totalScore = chosen.reduce((s, x) => s + x.score, 0);
+      const exact = chosen.map((x) => (spare * x.score) / totalScore);
+      const alloc = exact.map(Math.floor);
+      const left = spare - alloc.reduce((a, b) => a + b, 0);
+      exact.map((e, i) => ({ i, f: e - Math.floor(e) }))
+        .sort((a, b) => b.f - a.f || a.i - b.i)
+        .slice(0, left)
+        .forEach((o) => { alloc[o.i] += 1; });
+
+      const items = chosen.map((x, i) => Object.assign({}, x, { minutes: (1 + alloc[i]) * 5 }));
+      return { items, omitted, flaggedCount: flagged.length, totalMinutes: items.reduce((s, x) => s + x.minutes, 0) };
+    }
+  };
+})();
+</script>
+
+<!-- ===================================================================
+     UI: state, rendering and interactions. User-provided text is only ever
+     inserted with textContent / text nodes, never as HTML.
+     =================================================================== -->
+<script id="tensor-app">
+(() => {
+  'use strict';
+
+  const VIEWS = [
+    { id: 'inputs', label: 'Inputs' },
+    { id: 'topics', label: 'Topics' },
+    { id: 'report', label: 'Report' },
+    { id: 'quiz', label: 'Quiz' },
+    { id: 'plan', label: 'Plan' }
+  ];
+  const COV_LABEL = { covered: 'Covered', partial: 'Partially covered', none: 'No evidence found', uncertain: 'Uncertain' };
+  const COV_ORDER = ['covered', 'partial', 'none', 'uncertain'];
+  const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+
+  const freshState = () => ({
+    view: 'inputs',
+    mode: 'live',
+    topicsConfirmed: false,
+    coverageReady: false,
+    liveQuiz: null,
+    quizCount: 10,
+    sampleQuizCount: 10,
+    quizOffset: 0,
+    quizHistory: {},
+    topicQuizSessions: {},
+    liveFollow: { questions: {}, results: {}, answers: {}, error: '' },
+    planView: 'roadmap',
+    roadmapSelected: null,
+    studyDone: {},
+    coverageWarnings: [],
+    notePassages: [],
+    coverageModel: '',
+    extractionWarnings: [],
+    extractionModel: '',
+    inputs: { course: '', syllabus: '', notes: '', minutes: '45' },
+    pdfNames: { syllabus: '', notes: '' },
+    pdfDocuments: { syllabus: null, notes: null },
+    pdfURLs: { syllabus: null, notes: null },
+    pdfMessage: '',
+    aiStatus: '',
+    loadingLabel: '',
+    loading: false,
+    error: null,
+    analysis: false,
+    customInput: false,
+    topics: [],
+    newTopic: '',
+    topicMsg: '',
+    evidenceId: null,
+    quiz: { answers: {}, result: null, error: '' },
+    followUp: { topicId: null, answer: null, result: null },
+    addedCount: 0
+  });
+  let state = freshState();
+  const root = document.getElementById('view-root');
+  const navEl = document.getElementById('nav');
+
+  /* ---------- DOM helpers (text only, never innerHTML for user content) ---------- */
+  function add(el, k) {
+    if (k == null || k === false) return;
+    if (Array.isArray(k)) { k.forEach((x) => add(el, x)); return; }
+    el.appendChild(k instanceof Node ? k : document.createTextNode(String(k)));
+  }
+  function h(tag, props, ...kids) {
+    const el = document.createElement(tag);
+    Object.keys(props || {}).forEach((k) => {
+      const v = props[k];
+      if (v == null || v === false) return;
+      if (k === 'class') el.className = v;
+      else if (k.slice(0, 2) === 'on' && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'value' || k === 'checked' || k === 'disabled') el[k] = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    });
+    kids.forEach((k) => add(el, k));
+    return el;
+  }
+  const ICONS = {
+    covered: '<path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2"/>',
+    partial: '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="currentColor"/>',
+    none: '<path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" fill="none"/>',
+    uncertain: '<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><text x="8" y="11.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor">?</text>',
+    dash: '<path d="M3.5 8h9" stroke="currentColor" stroke-width="2" fill="none"/>'
+  };
+  function icon(name) {
+    const s = document.createElement('span');
+    s.setAttribute('aria-hidden', 'true');
+    s.style.display = 'inline-flex';
+    s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" focusable="false">' + ICONS[name] + '</svg>'; // static trusted markup
+    return s;
+  }
+  function covBadge(c) { return h('span', { class: 'badge b-' + c }, icon(c), COV_LABEL[c]); }
+  function quizBadge(item) {
+    if (!item) return h('span', { class: 'badge q-badge' }, icon('dash'), 'Not assessed');
+    if (item.total > 1) return h('span',{class:'badge q-badge '+(item.isCorrect?'q-ok':'q-bad')},
+      icon(item.isCorrect?'covered':'none'), item.correctCount+' of '+item.total+' correct'+(item.isCorrect?'':' · Review suggested'));
+    return item.isCorrect
+      ? h('span', { class: 'badge q-badge q-ok' }, icon('covered'), 'Answered correctly')
+      : h('span', { class: 'badge q-badge q-bad' }, icon('none'), 'Answered incorrectly');
+  }
+  function focusId(id) {
+    requestAnimationFrame(() => { const el = document.getElementById(id); if (el) el.focus(); });
+  }
+  function field(id, label, control, hint) {
+    return h('div', { class: 'field' },
+      h('label', { for: id }, label),
+      control,
+      hint ? h('p', { class: 'hint', id: id + '-hint' }, hint) : null);
+  }
+  function errorBox(err) {
+    return h('div', { class: 'error-box', role: 'alert', id: 'error-box', tabindex: '-1' },
+      h('strong', {}, err.title),
+      h('ul', {}, err.items.map((i) => h('li', {}, i))),
+      err.retry ? h('div', { class: 'row', style: 'margin-top:10px' },
+        h('button', { class: 'btn btn-small', type: 'button', onclick: runPreview }, 'Try again')) : null);
+  }
+  function emptyState(title, text, label, target) {
+    return h('div', { class: 'empty' },
+      h('h2', {}, title), h('p', {}, text),
+      h('button', { class: 'btn btn-primary', type: 'button', onclick: () => go(target) }, label));
+  }
+  function customBanner() {
+    return state.customInput
+      ? h('div', { class: 'notice', role: 'note' },
+          h('strong', {}, 'Your text was not analysed.'),
+          'What follows is the built-in sample analysis. Tensor cannot analyse arbitrary text until the backend is connected.')
+      : null;
+  }
+  function header(title, lead) {
+    return [h('h1', { id: 'view-title', tabindex: '-1' }, title), lead ? h('p', { class: 'lead' }, lead) : null];
+  }
+  function releasePdf(kind) {
+    if (state.pdfURLs[kind]) URL.revokeObjectURL(state.pdfURLs[kind]);
+    state.pdfURLs[kind] = null; state.pdfDocuments[kind] = null; state.pdfNames[kind] = '';
+  }
+  function releaseAllPdfs() { releasePdf('syllabus'); releasePdf('notes'); }
+  function usePastedText(kind) {
+    releasePdf(kind);
+    if (kind === 'syllabus') invalidateResults(); else invalidateCoverage();
+    state.pdfMessage = 'PDF page references removed. You can now edit the copied text.';
+    render(); focusId(kind);
+  }
+  async function uploadPdf(file, kind) {
+    if (!file || state.loading) return;
+    if (file.size > 20 * 1024 * 1024) {
+      state.error = { title: 'PDF too large', items: ['Use a PDF no larger than 20 MiB.'] }; render(); return;
+    }
+    const requestState = state;
+    state.loading = true; state.loadingLabel = 'Reading PDF text on the server…'; state.error = null; render();
+    try {
+      const document = await TensorService.uploadPdf(file, kind);
+      if (state !== requestState) return;
+      releasePdf(kind);
+      state.pdfDocuments[kind] = document; state.pdfNames[kind] = document.filename;
+      state.pdfURLs[kind] = URL.createObjectURL(file);
+      state.inputs[kind] = document.text;
+      if (kind === 'syllabus') invalidateResults(); else invalidateCoverage();
+      state.pdfMessage = document.filename + ': text extracted from ' + document.page_count + ' PDF page(s). '
+        + (document.warnings || []).join(' ');
+      state.loading = false; state.loadingLabel = ''; render(); focusId('pdf-status');
+    } catch (error) {
+      if (state !== requestState) return;
+      state.loading = false; state.loadingLabel = '';
+      state.error = { title: 'PDF upload failed', items: [error.message || 'Could not read the PDF.'] };
+      render(); focusId('error-box');
+    }
+  }
+  function pdfPageLink(reference) {
+    const document = state.pdfDocuments.notes;
+    if (!reference.page || !state.pdfURLs.notes || !document || document.filename !== reference.doc) return null;
+    return h('a', { class: 'btn btn-small', href: state.pdfURLs.notes + '#page=' + reference.page, target: '_blank', rel: 'noopener' }, 'Open PDF page ' + reference.page);
+  }
+
+  function invalidateCoverage() {
+    state.liveQuiz = null; state.quizHistory = {}; state.topicQuizSessions = {}; state.quizOffset = 0; state.liveFollow = { questions: {}, results: {}, answers: {}, error: '' };
+    state.studyDone = {}; state.roadmapSelected = null;
+    state.coverageReady = false; state.coverageWarnings = []; state.notePassages = [];
+    state.coverageModel = ''; state.evidenceId = null;
+    state.quiz = { answers: {}, result: null, error: '' };
+    state.followUp = { topicId: null, answer: null, result: null };
+  }
+  function invalidateResults() {
+    invalidateCoverage();
+    state.analysis = false; state.topicsConfirmed = false; state.topics = [];
+    state.evidenceId = null; state.extractionWarnings = []; state.extractionModel = '';
+    state.quiz = { answers: {}, result: null, error: '' };
+    state.followUp = { topicId: null, answer: null, result: null };
+    state.error = null;
+  }
+  function changeMode(mode) {
+    if (state.mode === mode) return;
+    const inputs = { ...state.inputs };
+    releaseAllPdfs();
+    state = freshState(); state.mode = mode; state.inputs = inputs;
+    render(); focusId('view-title');
+  }
+  function pendingLiveView(title) {
+    return h('div', { class: 'view' }, header(title),
+      h('div', { class: 'info-box' }, h('strong', {}, 'Complete notes coverage first.'),
+        'Confirm your topics and analyse notes to open the report, quiz and study roadmap. No sample results are substituted for your syllabus.'),
+      h('button', { class: 'btn', type: 'button', onclick: () => go(state.analysis ? 'topics' : 'inputs') },
+        state.analysis ? 'Back to extracted topics' : 'Back to inputs'));
+  }
+  function minutesValue() {
+    const n = Number(String(state.inputs.minutes).trim());
+    return Number.isInteger(n) && n >= 5 && n <= 10080 ? n : null;
+  }
+  function quizMap() {
+    return new Map((state.mode === 'live' ? Object.values(state.quizHistory) : TensorService.summarizeAnswers(state.quiz.result ? state.quiz.result.items : [])).map((i) => [i.topicId, i]));
+  }
+  function topicName(id) { const t = state.topics.find((x) => x.id === id); return t ? t.name : null; }
+
+  /* ---------- Navigation ---------- */
+  function navStatus(id) {
+    if (state.mode === 'live') {
+      if (id === 'inputs') return state.analysis ? 'Extraction ready' : 'Add syllabus';
+      if (id === 'topics') return state.analysis ? (state.topicsConfirmed ? 'Confirmed' : state.topics.length + ' topics to review') : 'Waiting for extraction';
+      if (id === 'report') return state.coverageReady ? 'Live coverage ready' : 'Waiting for notes analysis';
+      if (id === 'quiz') return state.mode === 'live' && Object.keys(state.quizHistory).length ? Object.keys(state.quizHistory).length + ' topics assessed' : state.quiz.result ? state.quiz.result.correctCount + ' of ' + state.quiz.result.total + ' correct' : (state.coverageReady ? 'Ready' : 'Waiting for coverage');
+      if (id === 'plan') return state.coverageReady ? 'Roadmap ready' : 'Waiting for coverage';
+      return 'Not started';
+    }
+    const r = state.mode === 'live' ? aggregateQuizResult() : state.quiz.result;
+    switch (id) {
+      case 'inputs': return state.analysis ? 'Sample preview ready' : 'Not started';
+      case 'topics': return state.analysis ? state.topics.length + ' topics' : 'Waiting for preview';
+      case 'report': return state.analysis ? (r ? 'Quiz evidence added' : 'Quiz not assessed') : 'Waiting for preview';
+      case 'quiz': return r ? r.correctCount + ' of ' + r.total + ' correct' : 'Not submitted';
+      case 'plan': return state.analysis ? 'Ready' : 'Waiting for preview';
+      default: return '';
+    }
+  }
+  function renderNav() {
+    navEl.replaceChildren(h('ol', {}, VIEWS.map((v, i) =>
+      h('li', {}, h('button', {
+        type: 'button', class: 'nav-btn',
+        'aria-current': state.view === v.id ? 'page' : null,
+        onclick: () => go(v.id)
+      },
+        h('span', { class: 'nav-num', 'aria-hidden': 'true' }, String(i + 1)),
+        h('span', { class: 'nav-label' }, v.label),
+        h('span', { class: 'nav-sub' }, navStatus(v.id)))))));
+  }
+  function go(view) {
+    if (state.loading) return;
+    state.view = view;
+    state.error = null;
+    render();
+    window.scrollTo(0, 0);
+    focusId('view-title');
+  }
+
+  /* ---------- Views ---------- */
+  function viewInputs() {
+    const i = state.inputs;
+    const disabled = state.loading;
+    function pdfRow(key, label) {
+      const inputId = 'pdf-' + key;
+      const name = state.pdfNames[key];
+      return h('div', { class: 'pdf-row' },
+        h('span', { class: 'small', style: 'font-weight:650' }, label),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn btn-small', type: 'button', disabled: disabled || state.mode !== 'live',
+            'aria-describedby': 'pdf-note', onclick: () => document.getElementById(inputId).click() },
+            'Choose PDF', h('span', { class: 'sr-only' }, ' for ' + label.toLowerCase())),
+          h('input', { type: 'file', id: inputId, accept: 'application/pdf,.pdf', class: 'sr-only', tabindex: '-1', 'aria-hidden': 'true',
+            onchange: (e) => {
+              const f = e.target.files && e.target.files[0];
+              e.target.value = '';
+              if (f) uploadPdf(f, key);
+            } }),
+          name
+            ? [h('span', { class: 'pdf-name' }, name + (state.pdfDocuments[key] ? ' · ' + state.pdfDocuments[key].page_count + ' PDF page(s)' : '')),
+               h('button', { class: 'btn-link small', type: 'button', disabled, onclick: () => usePastedText(key) },
+                 'Use pasted text', h('span', { class: 'sr-only' }, ' ' + label.toLowerCase()))]
+            : h('span', { class: 'muted small' }, 'No file selected')));
+    }
+    const anyPdf = state.pdfNames.syllabus || state.pdfNames.notes;
+
+    return h('div', { class: 'view' },
+      header('Inputs', state.mode === 'live'
+        ? 'Extract topics from your syllabus using the connected AI backend, then review and confirm them.'
+        : 'Explore the complete workflow with clearly labelled synthetic Java OOP data.'),
+      h('div', { class: 'row', role: 'group', 'aria-label': 'Analysis mode' },
+        h('button', { class: 'btn', type: 'button', disabled: disabled || state.mode === 'live', onclick: () => changeMode('live') }, 'Use live extraction'),
+        h('button', { class: 'btn', type: 'button', disabled: disabled || state.mode === 'sample', onclick: () => changeMode('sample') }, 'Use sample demo'),
+        h('button',{class:'btn btn-primary',type:'button',onclick:startInstantDemo},'Open sample demo (no AI)'),
+        state.mode === 'live' ? h('button',{class:'btn',type:'button',disabled,onclick:checkAIConnection},'Check AI connection') : null),
+      state.aiStatus ? h('p',{class:'info-box',role:'status'},state.aiStatus) : null,
+      state.error ? errorBox(state.error) : null,
+      h('div', { class: 'info-box' },
+        h('strong', {}, state.mode === 'live' ? 'What is connected now' : 'What “Preview sample analysis” does'),
+        state.mode === 'live'
+          ? 'PDF text is extracted on this server without an AI call. Topic extraction and coverage analysis send the relevant extracted text to Google Gemini. Evidence page numbers come from the uploaded PDF.'
+          : 'The built-in Java OOP sample dataset is used. Nothing is sent to the AI backend.'),
+      h('form', { class: 'stack', novalidate: 'true', onsubmit: (e) => { e.preventDefault(); runPreview(); } },
+        h('div', { class: 'form-grid' },
+          field('course', 'Course name',
+            h('input', { type: 'text', id: 'course', maxlength: '200', value: i.course, autocomplete: 'off', disabled,
+              oninput: (e) => { state.inputs.course = e.target.value; invalidateResults(); } })),
+          field('minutes', 'Available study time (minutes)',
+            h('input', { type: 'number', id: 'minutes', min: '5', max: '10080', step: '5', value: i.minutes, disabled,
+              'aria-describedby': 'minutes-hint',
+              oninput: (e) => { state.inputs.minutes = e.target.value; } }),
+            'Between 5 and 10,080. The study plan will never exceed this.'),
+          h('div', { class: 'span-2' }, field('syllabus', 'Syllabus text',
+            h('textarea', { id: 'syllabus', rows: '6', maxlength: '120000', readonly: !!state.pdfDocuments.syllabus, disabled,
+              oninput: (e) => { if (state.pdfDocuments.syllabus) return; state.inputs.syllabus = e.target.value; invalidateResults(); } }, i.syllabus))),
+          h('div', { class: 'span-2' }, field('notes', state.mode === 'live' ? 'Notes text (needed for the coverage report)' : 'Notes text',
+            h('textarea', { id: 'notes', rows: '9', maxlength: '600000', readonly: !!state.pdfDocuments.notes, disabled,
+              oninput: (e) => { if (state.pdfDocuments.notes) return; state.inputs.notes = e.target.value; invalidateCoverage(); } }, i.notes)))),
+        h('fieldset', {},
+          h('legend', {}, 'Text-based PDFs (optional)'),
+          h('p', { class: 'hint', id: 'pdf-note' },
+            'Live mode supports text-based PDFs up to 20 MiB and 200 pages, with extracted-text limits of 120,000 syllabus characters and 600,000 notes characters. Up to 100 confirmed topics per report. Large notes use retrieved passages; unresolved absence is marked Uncertain. Scans, handwriting and password-protected PDFs are not supported. Extracted text is locked to preserve page references; choose “Use pasted text” to edit it.'),
+          pdfRow('syllabus', 'Syllabus PDF'),
+          pdfRow('notes', 'Notes PDF'),
+          h('p', { class: 'small', id: 'pdf-status', tabindex: '-1', role: 'status' },
+            state.pdfMessage || (anyPdf ? 'PDF text is loaded. Review it above before analysing.' : 'Choose a PDF to extract its text, or paste text directly.'))),
+        state.loading
+          ? h('div', { class: 'loading', role: 'status' }, h('span', { class: 'bar-ind', 'aria-hidden': 'true' }),
+              h('span', {}, state.loadingLabel || (state.mode === 'live' ? 'Extracting syllabus topics with AI…' : 'Preparing sample preview…')))
+          : h('div', { class: 'row' },
+              h('button', { class: 'btn', type: 'button', onclick: loadSample }, state.mode === 'live' ? 'Load example text' : 'Load sample'),
+              state.mode === 'live' && state.analysis ? h('button', { class: 'btn', type: 'button', onclick: () => go('topics') }, 'Review existing topics') : null,
+              state.mode === 'live' ? h('button',{class:'btn',type:'button',onclick:beginManualTopics},'Enter topics manually') : null,
+              h('button', { class: 'btn btn-primary', type: 'submit' }, state.mode === 'live' ? 'Extract topics with AI' : 'Preview sample analysis'))));
+  }
+
+  function startInstantDemo() {
+    TensorService.cancelActiveJob().catch(()=>{});
+    const minutes = state.inputs.minutes;
+    releaseAllPdfs();
+    state = freshState();
+    state.mode = 'sample';
+    const sample = TensorService.getSampleInputs();
+    state.inputs = {...sample,minutes: minutesValueForDemo(minutes)};
+    state.topics = TensorService.getSampleTopics();
+    state.analysis = true;
+    state.view = 'report';
+    render(); window.scrollTo(0,0); focusId('view-title');
+  }
+  function minutesValueForDemo(value) {
+    const n=Number(value);
+    return Number.isInteger(n) && n>=5 && n<=10080 ? String(n) : '45';
+  }
+  async function stopAnalysis() {
+    state.loadingLabel = 'Stopping analysis…'; render();
+    try { await TensorService.cancelActiveJob(); }
+    catch (error) { state.loadingLabel = 'Could not send stop request. Use Reset or restart the server if it is unreachable.'; render(); }
+  }
+  async function checkAIConnection() {
+    if (state.loading) return;
+    const requestState=state;
+    state.loading=true; state.loadingLabel='Checking the configured AI model…'; state.aiStatus=''; state.error=null; render();
+    try {
+      const result=await TensorService.runJob('check',{},jobProgress(requestState));
+      if (state!==requestState) return;
+      state.aiStatus=result.model+': '+result.message;
+    } catch(error) { if(state!==requestState)return; state.error={title:'AI connection check failed',items:[error.message]}; }
+    if(state!==requestState)return;
+    state.loading=false; state.loadingLabel=''; render();
+  }
+
+  function beginManualTopics() {
+    if (state.loading) return;
+    invalidateResults();
+    state.analysis = true;
+    state.topics = [];
+    state.extractionWarnings = ['Manual topic entry: use your syllabus to add the topics you want assessed. These names have not been extracted or source-verified by AI.'];
+    state.extractionModel = '';
+    state.error = null;
+    go('topics');
+  }
+
+  function loadSample() {
+    const s = TensorService.getSampleInputs();
+    releaseAllPdfs(); state.pdfMessage = '';
+    invalidateResults();
+    state.inputs = { course: s.course, syllabus: s.syllabus, notes: s.notes, minutes: s.minutes };
+    state.error = null;
+    render();
+    focusId('view-title');
+  }
+
+  async function runPreview() {
+    if (state.loading) return;
+    const requestState = state;
+    const i = { ...state.inputs, syllabusDocumentId: state.pdfDocuments.syllabus ? state.pdfDocuments.syllabus.document_id : null }, errs = [], live = state.mode === 'live';
+    if (minutesValue() === null) errs.push('Enter a whole number of minutes between 5 and 10,080.');
+    if (i.course.trim().length > 200) errs.push('Course name must be at most 200 characters.');
+    if (live && (i.syllabus.trim().length < 10 || i.syllabus.length > 120000))
+      errs.push('Syllabus text must contain between 10 and 120,000 characters.');
+    if (!live && !i.syllabus.trim()) errs.push('Add syllabus text or load the sample.');
+    if (!live && !i.notes.trim()) errs.push('Add notes text or load the sample.');
+    if (errs.length) {
+      state.error = { title: 'Check the inputs', items: errs };
+      render(); focusId('error-box'); return;
+    }
+    invalidateResults(); state.loading = true; state.loadingLabel = ''; render();
+    try {
+      const res = live ? await TensorService.extractTopics(i, jobProgress(requestState)) : await TensorService.preparePreview(i);
+      if (state !== requestState) return; // A reset or mode change invalidates the pending request.
+      state.customInput = !live && !TensorService.isSampleInput(i);
+      state.topics = live ? res.topics.map((t) => ({
+        ...t, coverage: 'uncertain', gap: '', syllabusRef: 'Extracted syllabus topic',
+        evidence: { doc: 'Coverage not analysed', page: null, excerpt: null,
+          explanation: 'Topic extraction does not assess notes coverage.' }
+      })) : res.topics;
+      state.extractionWarnings = live && Array.isArray(res.warnings) ? res.warnings : [];
+      state.extractionModel = live ? res.model : '';
+      state.analysis = true; state.topicsConfirmed = false; state.loading = false;
+      go('topics');
+    } catch (e) {
+      if (state !== requestState) return;
+      state.loading = false;
+      state.error = { title: live ? 'Topic extraction failed' : 'Sample preview failed', items: [(e && e.message) || 'Unknown error.'], retry: true };
+      state.view = 'inputs'; render(); focusId('error-box');
+    }
+  }
+
+  async function runCoverage() {
+    if (state.loading) return;
+    if (!state.topicsConfirmed) {
+      state.error = { title: 'Confirm the topics first', items: ['Review the list and choose “Confirm topic list”.'] };
+      render(); focusId('error-box'); return;
+    }
+    if (state.inputs.notes.trim().length < 10 || state.inputs.notes.length > 600000) {
+      state.error = { title: 'Add notes before analysing coverage', items: ['Paste between 10 and 600,000 characters of notes in the box below.'] };
+      render(); focusId('error-box'); return;
+    }
+    const requestState = state;
+    const topics = state.topics.map((t) => ({ ...t }));
+    invalidateCoverage(); state.error = null; state.loading = true; state.loadingLabel = ''; render();
+    try {
+      const res = await TensorService.analyzeCoverage({ ...state.inputs, notesDocumentId: state.pdfDocuments.notes ? state.pdfDocuments.notes.document_id : null }, topics, jobProgress(requestState));
+      if (state !== requestState) return;
+      const oldTopics = new Map(topics.map((t) => [t.id, t]));
+      state.topics = res.topics.map((t) => ({ ...oldTopics.get(t.id), ...t }));
+      state.coverageWarnings = Array.isArray(res.warnings) ? res.warnings : [];
+      state.notePassages = res.passages; state.coverageModel = res.model;
+      state.coverageReady = true; state.loading = false; go('report');
+    } catch (error) {
+      if (state !== requestState) return;
+      state.loading = false; state.view = 'topics';
+      state.error = { title: 'Notes coverage analysis failed', items: [error.message || 'Unknown error.'] };
+      render(); focusId('error-box');
+    }
+  }
+
+  function viewTopics() {
+    if (!state.analysis) {
+      return h('div', { class: 'view' }, header('Confirm topics'),
+        emptyState('No topics yet', state.mode === 'live' ? 'Add a syllabus and choose “Extract topics with AI”.' : 'Load the sample and preview it first.', 'Go to inputs', 'inputs'));
+    }
+    function addTopic() {
+      const name = state.newTopic.trim();
+      if (state.topics.length >= 100) { state.topicMsg = 'Use at most 100 topics per report.'; render(); return; }
+      if (!name) { state.topicMsg = 'Enter a topic name first.'; render(); focusId('new-topic'); return; }
+      state.topicsConfirmed = false; invalidateCoverage();
+      state.addedCount += 1;
+      state.topics.push({ id: 'u' + state.addedCount, name, syllabusRef: 'Added by you', coverage: 'uncertain', gap: '',
+        evidence: { doc: 'Not analysed', page: null, excerpt: null,
+          explanation: 'You added this topic. Notes coverage has not been analysed for this manually added topic.' } });
+      state.newTopic = ''; state.topicMsg = '';
+      render(); focusId('new-topic');
+    }
+    function proceed() {
+      const empties = state.topics.filter((t) => !t.name.trim());
+      const seen = new Set(), dups = [];
+      state.topics.forEach((t) => { const k = t.name.trim().toLowerCase(); if (k && seen.has(k)) dups.push(t.name.trim()); seen.add(k); });
+      const items = [];
+      if (state.topics.length > 100) items.push('Use at most 100 topics per report.');
+      if (state.topics.some((t) => t.name.trim().length > 200)) items.push('Topic names must be at most 200 characters.');
+      if (!state.topics.length) items.push('Add at least one topic, or restore the sample topics.');
+      if (empties.length) items.push('Give every topic a name or remove the empty ones.');
+      if (dups.length) items.push('These topics appear twice: ' + dups.join(', ') + '.');
+      if (items.length) { state.error = { title: 'Fix the topic list before continuing', items }; render(); focusId('error-box'); return; }
+      state.topics.forEach((t) => { t.name = t.name.trim(); });
+      if (state.mode === 'live') { state.topicsConfirmed = true; render(); focusId('topics-confirmed'); return; }
+      go('report');
+    }
+    return h('div', { class: 'view' },
+      header('Confirm topics', state.mode === 'live'
+        ? 'These topics came from your syllabus. Review their source excerpts, then edit, add or remove topics before confirming. Editing a topic does not re-run AI extraction.'
+        : 'These are synthetic sample topics. Added or renamed topics have no verified coverage analysis.'),
+      state.mode === 'live' ? h('div', { class: 'info-box' },
+        h('strong', {}, 'Live extraction · ' + state.extractionModel),
+        h('p', {}, 'Excerpt verification checks source text, not completeness or topic interpretation.'),
+        state.extractionWarnings.map((w) => h('p', { class: 'small' }, w))) : null,
+      state.topicsConfirmed ? h('div', { class: 'info-box', id: 'topics-confirmed', tabindex: '-1', role: 'status' },
+        h('strong', {}, state.topics.length + ' topics confirmed.'),
+        'Topic review is complete. Paste your notes below and choose “Analyse notes coverage”.') : null,
+      customBanner(),
+      state.error ? errorBox(state.error) : null,
+      h('section', { class: 'panel', 'aria-labelledby': 'topics-h' },
+        h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:12px' },
+          h('h2', { id: 'topics-h', style: 'margin:0' }, 'Topics'),
+          h('span', { class: 'muted small', id: 'topic-count', tabindex: '-1', role: 'status' }, state.topics.length + (state.topics.length === 1 ? ' topic' : ' topics'))),
+        state.topics.length
+          ? h('ol', { class: 'topic-list' }, state.topics.map((t, idx) =>
+              h('li', { class: 'topic-item' },
+                h('span', { class: 'topic-idx', 'aria-hidden': 'true' }, String(idx + 1) + '.'),
+                h('input', { type: 'text', maxlength: '200', disabled: state.loading, value: t.name, 'aria-label': 'Topic ' + (idx + 1) + ' name', autocomplete: 'off',
+                  oninput: (e) => { invalidateCoverage(); t.name = e.target.value; t.source_verified = false; t.coverage = 'uncertain'; t.evidence = { doc: 'Topic edited', page: null, excerpt: null, explanation: 'The topic name changed. Coverage has not been checked for the edited topic.' }; state.topicsConfirmed = false; const notice = document.getElementById('topics-confirmed'); if (notice) notice.remove(); e.target.nextSibling.setAttribute('aria-label', 'Remove topic ' + (idx + 1)); } }),
+                h('button', { class: 'btn btn-small', type: 'button', disabled: state.loading, 'aria-label': 'Remove topic ' + (idx + 1) + ': ' + t.name,
+                  onclick: () => { state.topicsConfirmed = false; invalidateCoverage(); state.topics.splice(idx, 1); state.error = null; render(); focusId('topic-count'); } }, 'Remove'),
+                state.mode === 'live' ? h('details', { style: 'grid-column:1 / -1;margin:0 0 8px 38px' },
+                  h('summary', { class: 'small' }, 'Syllabus source excerpt'),
+                  t.syllabus_excerpt
+                    ? [h('p', { class: 'small' }, (t.source_doc || 'Pasted syllabus') + (t.source_pages && t.source_pages.length ? ' · PDF page(s) ' + t.source_pages.join(', ') : '')),
+                       h('blockquote', { class: 'excerpt' }, t.syllabus_excerpt),
+                       h('p', { class: 'small muted' }, 'This is the original extraction excerpt. Edited names are not automatically re-evaluated.')]
+                    : h('p', { class: 'small muted' }, 'Manually added topic; no AI-verified source excerpt.')) : null)))
+          : h('div', { class: 'empty' }, h('p', {}, 'No topics left. Add a topic below or restore the sample topics.')),
+        h('div', { style: 'margin-top:18px;border-top:1px solid var(--line);padding-top:16px' },
+          h('div', { class: 'field' },
+            h('label', { for: 'new-topic' }, 'Add a topic'),
+            h('div', { class: 'row' },
+              h('input', { type: 'text', id: 'new-topic', maxlength: '200', disabled: state.loading, value: state.newTopic, autocomplete: 'off', style: 'flex:1;min-width:200px',
+                'aria-describedby': state.topicMsg ? 'topic-msg' : null,
+                oninput: (e) => { state.newTopic = e.target.value; },
+                onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); addTopic(); } } }),
+              h('button', { class: 'btn', type: 'button', disabled: state.loading, onclick: addTopic }, 'Add topic')),
+            state.topicMsg ? h('p', { id: 'topic-msg', role: 'alert', style: 'color:var(--red);font-weight:600' }, state.topicMsg) : null),
+          h('p', { style: 'margin-top:12px' },
+            h('button', { class: 'btn-link', type: 'button', disabled: state.loading,
+              onclick: () => { if (state.mode === 'live') { invalidateResults(); go('inputs'); return; } state.topics = TensorService.getSampleTopics(); state.error = null; state.evidenceId = null; render(); focusId('topic-count'); } },
+              state.mode === 'live' ? 'Clear list and return to inputs' : 'Restore sample topics')))),
+      state.mode === 'live' ? h('section', { class: 'panel stack', 'aria-labelledby': 'coverage-notes-label' },
+        h('h2', { id: 'coverage-notes-label' }, 'Notes for coverage analysis'),
+        field('coverage-notes', 'Paste your study notes',
+          h('textarea', { id: 'coverage-notes', rows: '9', maxlength: '600000', readonly: !!state.pdfDocuments.notes, disabled: state.loading,
+            oninput: (e) => { if (state.pdfDocuments.notes) return; state.inputs.notes = e.target.value; invalidateCoverage(); } }, state.inputs.notes),
+          state.pdfDocuments.notes ? 'Text came from ' + state.pdfDocuments.notes.filename + '. PDF pages are preserved. Return to Inputs and choose “Use pasted text” to edit.' : 'Use blank lines between paragraphs. Pasted text has passage IDs but no verified PDF page numbers.'),
+        h('p', { class: 'small muted' }, 'This action sends the notes and confirmed topics to Google Gemini. It assesses the material, not your understanding.'),
+        state.loading ? h('p', { role: 'status' }, state.loadingLabel || 'Analysing notes coverage with AI…')
+          : h('button', { class: 'btn btn-primary', type: 'button', onclick: runCoverage }, 'Analyse notes coverage')) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', type: 'button', disabled: state.loading, onclick: () => go('inputs') }, 'Back to inputs'),
+        h('button', { class: 'btn btn-primary', type: 'button', disabled: state.loading, onclick: proceed }, state.mode === 'live' ? 'Confirm topic list' : 'Continue to report')));
+  }
+
+  function viewReport() {
+    if (state.mode === 'live' && !state.coverageReady) return pendingLiveView('Evidence report');
+    if (!state.analysis) {
+      return h('div', { class: 'view' }, header('Evidence report'),
+        emptyState('No report yet', 'The report appears after the sample preview has been prepared and topics confirmed.', 'Go to inputs', 'inputs'));
+    }
+    const topics = state.topics, qmap = quizMap(), r = state.mode === 'live' ? aggregateQuizResult() : state.quiz.result;
+    const counts = { covered: 0, partial: 0, none: 0, uncertain: 0 };
+    topics.forEach((t) => { counts[t.coverage] += 1; });
+    const total = topics.length;
+    const sel = topics.find((t) => t.id === state.evidenceId) || null;
+    const barLabel = 'Notes coverage across ' + total + ' topics: ' + COV_ORDER.map((c) => counts[c] + ' ' + COV_LABEL[c].toLowerCase()).join(', ');
+
+    const table = h('div', { class: 'table-wrap' },
+      h('table', { class: 'topic-table' },
+        h('caption', { class: 'sr-only' }, 'Topics with notes coverage, quiz status and evidence'),
+        h('thead', {}, h('tr', {},
+          h('th', { scope: 'col' }, 'Topic'), h('th', { scope: 'col' }, 'Notes coverage'),
+          h('th', { scope: 'col' }, 'Quiz status'), h('th', { scope: 'col' }, 'Evidence'))),
+        h('tbody', {}, topics.map((t) =>
+          h('tr', { class: state.evidenceId === t.id ? 'is-selected' : '' },
+            h('th', { scope: 'row' }, t.name),
+            h('td', { 'data-label': 'Notes coverage' }, covBadge(t.coverage)),
+            h('td', { 'data-label': 'Quiz status' }, quizBadge(qmap.get(t.id))),
+            h('td', { 'data-label': 'Evidence' },
+              h('button', { class: 'btn btn-small', type: 'button', 'aria-pressed': state.evidenceId === t.id ? 'true' : 'false',
+                'aria-label': 'View evidence for ' + t.name,
+                onclick: () => { state.evidenceId = t.id; render(); focusId('evidence-title'); } }, 'View evidence')))))));
+
+    let panelBody;
+    if (!sel) {
+      panelBody = h('p', { class: 'muted' }, 'Choose “View evidence” on a topic to see the source excerpt and why it received its coverage label.');
+    } else {
+      const e = sel.evidence;
+      panelBody = h('dl', {},
+        h('div', {}, h('dt', {}, 'Notes coverage'), h('dd', {}, covBadge(sel.coverage))),
+        h('div', {}, h('dt', {}, 'Document'), h('dd', {}, e.doc, ' ', e.doc.indexOf('synthetic') >= 0 ? h('span', { class: 'chip' }, 'Synthetic') : null)),
+        h('div', {}, h('dt', {}, 'Source location'), h('dd', {}, e.page ? 'PDF page ' + e.page : (e.passage_id ? 'Passage ' + e.passage_id : 'No supporting passage'))),
+        h('div', {}, h('dt', {}, 'Source excerpt'), h('dd', {},
+          e.references && e.references.length ? e.references.map((ref) => h('div', { class: 'stack', style: 'margin-bottom:10px' }, h('span', { class: 'chip' }, (ref.doc ? ref.doc + ' · ' : '') + (ref.page ? 'PDF page ' + ref.page + ' · ' : '') + ref.passage_id), h('blockquote', { class: 'excerpt' }, ref.excerpt), pdfPageLink(ref))) : (e.excerpt ? h('blockquote', { class: 'excerpt' }, e.excerpt) : h('span', { class: 'muted' }, 'No supporting passage identified.')))),
+        state.mode === 'live' ? h('div', {}, h('dt', {}, 'Quote verification'), h('dd', {}, e.verified ? 'Quoted text matched the cited notes passage(s).' : 'No supporting quotation to verify.')) : null,
+        h('div', {}, h('dt', {}, 'Explanation'), h('dd', {}, e.explanation)),
+        h('div', {}, h('dt', {}, 'Quiz evidence for this topic'), h('dd', {}, quizBadge(qmap.get(sel.id)),
+          h('p', { class: 'small muted', style: 'margin-top:6px' }, 'Kept separate on purpose: what the notes contain says nothing about what you showed in the quiz.'))));
+    }
+
+    return h('div', { class: 'view' },
+      header('Evidence report', (state.inputs.course.trim() ? state.inputs.course.trim() + '. ' : '') + 'Two separate questions: do your notes contain an explanation, and what did your quiz answers show?'),
+      state.loading ? h('p',{role:'status'},state.loadingLabel || 'Processing…') : null,
+      state.error ? h('div',{class:'error-box',role:'alert'},state.error.title, (state.error.items || []).join(' ')) : null,
+      state.mode === 'live' && state.topics.some(t => t.evidence && t.evidence.doc === 'Analysis incomplete') ? h('button',{class:'btn',type:'button',disabled:state.loading,onclick:retryUnresolvedCoverage},'Retry unresolved coverage') : null,
+      customBanner(),
+      h('div', { class: 'indicators' },
+        h('section', { class: 'panel', 'aria-labelledby': 'cov-h' },
+          h('h2', { id: 'cov-h' }, 'Notes coverage'),
+          h('p', { class: 'small muted' }, 'Whether relevant explanations exist in the uploaded notes. This is not a measure of what you understand.'),
+          total
+            ? [h('div', { class: 'bar', role: 'img', 'aria-label': barLabel },
+                COV_ORDER.filter((c) => counts[c] > 0).map((c) => h('span', { class: 's-' + c, style: 'width:' + (counts[c] / total * 100) + '%' }))),
+               h('ul', { class: 'legend' }, COV_ORDER.map((c) =>
+                 h('li', {}, h('span', { class: 'swatch', style: 'background:' + ({ covered: '#0f6f68', partial: '#d9a21b', none: '#b85c5c', uncertain: '#9ca3af' })[c], 'aria-hidden': 'true' }),
+                   COV_LABEL[c] + ': ', h('strong', {}, String(counts[c])))))]
+            : h('p', { class: 'muted', style: 'margin-top:10px' }, 'No topics to summarise.')),
+        h('section', { class: 'panel', 'aria-labelledby': 'quiz-h' },
+          h('h2', { id: 'quiz-h' }, 'Quiz evidence'),
+          h('p', { class: 'small muted' }, state.mode === 'live' ? 'Practice quiz results for assessed topics. Notes coverage and answers are tracked separately.' : 'What your answers to the diagnostic questions showed.'),
+          h('p', { class: 'big-num' }, r ? r.correctCount + ' of ' + r.total + ' answered correctly' : 'Not assessed'),
+          r ? h('p', { class: 'small muted' }, 'A few questions are a thin sample of what you know. Treat this as a prompt for what to recheck.')
+            : h('button', { class: 'btn btn-small', type: 'button', onclick: () => go('quiz') }, 'Take the diagnostic quiz'))),
+      h('div', { class: 'report-grid' },
+        total ? table : emptyState('No topics', 'Every topic was removed. Go back to add topics.', 'Back to topics', 'topics'),
+        h('section', { class: 'panel evidence', 'aria-labelledby': 'evidence-title' },
+          h('h2', { id: 'evidence-title', tabindex: '-1' }, sel ? 'Evidence: ' + sel.name : 'Evidence'),
+          panelBody)),
+      state.mode === 'live'
+        ? h('div', { class: 'info-box' }, h('strong', {}, 'Live notes analysis · ' + state.coverageModel),
+            state.coverageWarnings.map((warning) => h('p', { class: 'small' }, warning)))
+        : h('p', { class: 'small muted' }, 'All documents, excerpts and results on this page are synthetic sample data.'),
+      state.mode === 'live' ? h('details', { class: 'panel' },
+        h('summary', {}, 'Inspect the supplied notes passages'),
+        state.notePassages.map((p) => h('section', { style: 'margin-top:16px' },
+          h('h3', {}, p.id + (p.page ? ' · ' + p.doc + ' · PDF page ' + p.page : '')), h('p', { style: 'white-space:pre-wrap;overflow-wrap:anywhere' }, p.text)))) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', type: 'button', onclick: () => go('topics') }, 'Back to topics'),
+        h('button', { class: 'btn btn-primary', type: 'button', onclick: () => go('quiz') }, r ? 'Review quiz' : 'Take diagnostic quiz'),
+        h('button', { class: 'btn', type: 'button', onclick: () => go('plan') }, 'See study plan')));
+  }
+
+  function questionBlock(q, n, name, selected, onPick, resultItem) {
+    return h('fieldset', { class: 'q-block' },
+      h('legend', {}, (n ? 'Question ' + n + '. ' : '') + q.prompt),
+      h('div', { class: 'options' }, q.options.map((opt, idx) => {
+        let cls = 'option';
+        if (selected === idx) cls += ' is-chosen';
+        if (resultItem) {
+          if (idx === resultItem.correctIndex) cls += ' is-right';
+          else if (selected === idx) cls += ' is-wrong';
+        }
+        return h('label', { class: cls },
+          h('input', { type: 'radio', name, value: String(idx), checked: selected === idx, disabled: !!resultItem,
+            onchange: () => onPick(idx) }),
+          h('span', {}, h('strong', {}, LETTERS[idx] + '. '), opt,
+            resultItem && idx === resultItem.correctIndex ? h('span', { class: 'chip', style: 'margin-left:8px' }, 'Correct answer') : null,
+            resultItem && selected === idx && idx !== resultItem.correctIndex ? h('span', { class: 'chip', style: 'margin-left:8px' }, 'Your answer') : null));
+      })));
+  }
+
+  function viewQuiz() {
+    if (state.mode === 'live') return viewLiveQuiz();
+    if (!state.analysis) {
+      return h('div', { class: 'view' }, header('Diagnostic quiz'),
+        emptyState('Quiz not available yet', 'The diagnostic quiz belongs to the sample Java OOP unit. Prepare the sample preview first.', 'Go to inputs', 'inputs'));
+    }
+    const result = state.quiz.result;
+    const QUESTIONS = TensorService.getQuiz(state.sampleQuizCount);
+    const answered = () => QUESTIONS.filter((q) => state.quiz.answers[q.id] !== undefined).length;
+
+    function submit() {
+      const missing = QUESTIONS.map((q, i) => (state.quiz.answers[q.id] === undefined ? i + 1 : null)).filter(Boolean);
+      if (missing.length) {
+        state.quiz.error = 'Answer every question before submitting. Unanswered: question ' + missing.join(', ') + '.';
+        render(); focusId('quiz-error'); return;
+      }
+      state.quiz.error = '';
+      state.quiz.result = TensorService.scoreQuiz(state.quiz.answers, state.sampleQuizCount);
+      state.followUp = { topicId: null, answer: null, result: null };
+      render(); window.scrollTo(0, 0); focusId('quiz-summary');
+    }
+    function retake() {
+      state.quiz = { answers: {}, result: null, error: '' };
+      state.followUp = { topicId: null, answer: null, result: null };
+      go('quiz');
+    }
+
+    return h('div', { class: 'view' },
+      header('Diagnostic quiz', 'Choose 10 or 20 fixed Java 17 OOP practice questions. Sample scoring is local and does not call the AI service.'),
+      h('section',{class:'panel stack'},
+        h('label',{for:'sample-quiz-count'},'Number of sample questions'),
+        h('select',{id:'sample-quiz-count',onchange:e=>{
+          const count=Number(e.target.value);
+          if (Object.keys(state.quiz.answers).length && !window.confirm('Change question count? Current quiz answers and its result will be cleared.')) {e.target.value=String(state.sampleQuizCount); return;}
+          state.sampleQuizCount=count; retake();
+        }},[10,20].map(n=>h('option',{value:String(n),selected:state.sampleQuizCount===n},String(n)+' questions'))),
+        h('p',{class:'small muted'},'Both sizes include all six sample topics. Questions are fixed practice material; more correct answers do not establish mastery.')), 
+      customBanner(),
+      result
+        ? h('section', { class: 'panel', id: 'quiz-summary', tabindex: '-1', 'aria-labelledby': 'quiz-sum-h' },
+            h('h2', { id: 'quiz-sum-h' }, 'You answered ' + result.correctCount + ' of ' + result.total + ' correctly'),
+            h('p', { class: 'muted' }, 'Quiz evidence in the report has been updated. Notes coverage is unchanged. The two are tracked separately, and a short quiz provides limited evidence.'))
+        : null,
+      h('form', { class: 'stack', novalidate: 'true', onsubmit: (e) => { e.preventDefault(); if (!result) submit(); } },
+        QUESTIONS.map((q, idx) => {
+          const item = result ? result.items.find((x) => x.questionId === q.id) : null;
+          const tName = topicName(q.topicId);
+          return h('div', { class: 'panel stack' },
+            questionBlock(q, idx + 1, 'q-' + q.id, state.quiz.answers[q.id],
+              (v) => { state.quiz.answers[q.id] = v; const p = document.getElementById('quiz-progress'); if (p) p.textContent = answered() + ' of ' + QUESTIONS.length + ' answered'; },
+              item),
+            h('p', { class: 'small muted' }, 'Topic: ' + (tName || 'a topic you removed from your list')),
+            item ? h('div', { class: 'feedback ' + (item.isCorrect ? 'f-ok' : 'f-bad') },
+              h('strong', {}, item.isCorrect ? 'Correct.' : 'Incorrect.'),
+              item.isCorrect ? '' : 'The correct answer is ' + LETTERS[item.correctIndex] + '. ',
+              item.explanation) : null);
+        }),
+        state.loading ? h('p',{role:'status'},state.loadingLabel || 'Preparing quiz…') : null,
+      state.quiz.error ? h('div', { class: 'error-box', role: 'alert', id: 'quiz-error', tabindex: '-1' }, state.quiz.error) : null,
+        h('div', { class: 'row' },
+          result
+            ? [h('button', { class: 'btn btn-primary', type: 'button', onclick: () => go('report') }, 'View updated report'),
+               h('button', { class: 'btn', type: 'button', onclick: () => go('plan') }, 'Go to study plan'),
+               h('button', { class: 'btn', type: 'button', onclick: retake }, 'Retake quiz')]
+            : [h('button', { class: 'btn btn-primary', type: 'submit' }, 'Submit answers'),
+               h('span', { class: 'muted small', id: 'quiz-progress', role: 'status' }, answered() + ' of ' + QUESTIONS.length + ' answered')])));
+  }
+
+  function reasonsFor(item) {
+    const t = item.topic, out = [];
+    out.push({
+      covered: 'Notes: contain an explanation of this topic.',
+      partial: 'Notes: only partly cover this topic. ' + t.gap,
+      none: 'Notes: no passage explains this topic. ' + t.gap,
+      uncertain: 'Notes: the available evidence is ambiguous or insufficient.'
+    }[t.coverage]);
+    if (!(state.mode === 'live' ? aggregateQuizResult() : state.quiz.result)) out.push('Quiz: not taken yet, so this ranking reflects notes coverage only.');
+    else if (!item.quizItem) out.push('Quiz: no diagnostic question covered this topic (not assessed).');
+    else if (item.quizItem.total > 1) out.push('Quiz: '+item.quizItem.correctCount+' of '+item.quizItem.total+' questions on this topic were answered correctly.'+(item.quizItem.isCorrect?'':' Review the missed questions.'));
+    else if (item.quizItem.isCorrect) out.push('Quiz: you answered the diagnostic question correctly.');
+    else out.push('Quiz: you answered the diagnostic question incorrectly' + (t.coverage === 'covered' ? ', even though the notes cover the topic. Notes coverage does not show understanding.' : '.'));
+    return out;
+  }
+  function sourceFor(t) {
+    const e = t.evidence;
+    if (e && e.page) return e.doc + ', PDF page ' + e.page;
+    if (e && e.passage_id) return e.doc + ', passage ' + e.passage_id;
+    if (t.coverage === 'none') return 'No source passage found in the notes (' + t.syllabusRef + ')';
+    return 'No source analysed (' + t.syllabusRef + ')';
+  }
+
+  function viewPlan() {
+    if (state.mode === 'live') return viewLivePlan();
+    if (!state.analysis) {
+      return h('div', { class: 'view' }, header('Study plan and recheck'),
+        emptyState('No plan yet', 'A plan is built from the sample preview. Prepare it first.', 'Go to inputs', 'inputs'));
+    }
+    const mins = minutesValue();
+    const plan = mins === null ? null : TensorService.buildPlan({ topics: state.topics, quizResult: state.mode === 'live' ? aggregateQuizResult() : state.quiz.result, minutes: mins });
+    const concept = plan ? plan.items.map((x) => x.topic).find((t) => TensorService.hasFollowUp(t.id)) : null;
+
+    const minutesCtl = h('div', { class: 'field' },
+      h('label', { for: 'plan-minutes' }, 'Available study time (minutes)'),
+      h('input', { type: 'number', id: 'plan-minutes', min: '5', max: '10080', step: '5', value: state.inputs.minutes,
+        onchange: (e) => { state.inputs.minutes = e.target.value; render(); focusId('plan-minutes'); } }));
+
+    let body;
+    if (mins === null) {
+      body = h('div', { class: 'error-box', role: 'alert' }, 'Enter a whole number of minutes between 5 and 10,080 to build a plan.');
+    } else if (!plan.items.length) {
+      body = h('div', { class: 'empty' },
+        h('h2', {}, plan.flaggedCount ? 'Not enough time to schedule anything' : 'Nothing flagged'),
+        h('p', {}, plan.flaggedCount ? 'The smallest block is 5 minutes. Increase your available time.' : 'No topic has a coverage gap or an incorrect quiz answer in this sample data.'));
+    } else {
+      body = [
+        h('p', { role: 'status' }, h('strong', {}, plan.totalMinutes + ' of ' + mins + ' minutes'), ' allocated across ' + plan.items.length + (plan.items.length === 1 ? ' topic.' : ' topics.'),
+          plan.omitted ? ' ' + plan.omitted + ' lower-priority flagged ' + (plan.omitted === 1 ? 'topic does' : 'topics do') + ' not fit in the time available.' : ''),
+        h('ol', { class: 'plan-list' }, plan.items.map((it, idx) =>
+          h('li', { class: 'plan-item' },
+            h('div', { class: 'plan-head' },
+              h('span', { class: 'plan-rank', 'aria-hidden': 'true' }, String(idx + 1)),
+              h('h3', {}, it.topic.name),
+              covBadge(it.topic.coverage),
+              h('span', { class: 'plan-min' }, it.minutes + ' min')),
+            h('ul', {}, reasonsFor(it).map((r) => h('li', {}, r))),
+            h('p', { class: 'plan-src' }, 'Source: ' + sourceFor(it.topic)),
+            h('div', {}, h('button', { class: 'btn btn-small', type: 'button', 'aria-label': 'View evidence for ' + it.topic.name,
+              onclick: () => { state.evidenceId = it.topic.id; go('report'); } }, 'View evidence')))))
+      ];
+    }
+
+    return h('div', { class: 'view' },
+      header('Study plan and recheck', 'Topics are ranked by notes coverage gaps and, once taken, quiz answers. Minutes are suggestions in 5-minute blocks.'),
+      customBanner(),
+      !state.quiz.result
+        ? h('div', { class: 'notice', role: 'note' }, h('strong', {}, 'Quiz not taken yet.'), 'This ranking reflects notes coverage only. ',
+            h('button', { class: 'btn-link', type: 'button', onclick: () => go('quiz') }, 'Take the diagnostic quiz'), ' to add quiz evidence.')
+        : null,
+      h('section', { class: 'stack', 'aria-labelledby': 'plan-h' },
+        h('h2', { id: 'plan-h' }, 'Prioritised study plan'),
+        minutesCtl, body),
+      recheckSection(concept, plan));
+  }
+
+  function recheckSection(concept, plan) {
+    if (!concept) {
+      return h('section', { class: 'panel', 'aria-labelledby': 'recheck-h' },
+        h('h2', { id: 'recheck-h' }, 'Recheck'),
+        h('p', { class: 'muted' }, plan && plan.items.length ? 'None of the planned topics has a follow-up question in the sample.' : 'No concept is flagged for a recheck right now.'));
+    }
+    if (state.followUp.topicId !== concept.id) state.followUp = { topicId: concept.id, answer: null, result: null };
+    const q = TensorService.getFollowUp(concept.id);
+    const fu = state.followUp;
+    const diag = quizMap().get(concept.id);
+    const resultItem = fu.result ? { correctIndex: fu.result.correctIndex } : null;
+
+    function check() {
+      if (fu.answer === null) { fu.msg = 'Choose an answer first.'; render(); focusId('recheck-msg'); return; }
+      fu.msg = '';
+      fu.result = TensorService.checkFollowUp(concept.id, fu.answer);
+      render(); focusId('recheck-result');
+    }
+
+    return h('section', { class: 'panel stack', 'aria-labelledby': 'recheck-h' },
+      h('h2', { id: 'recheck-h' }, 'Recheck: ' + concept.name),
+      h('p', { class: 'muted' }, 'A different question on the same concept. One answer is a single data point.'),
+      questionBlock(q, 0, 'followup', fu.answer, (v) => { fu.answer = v; fu.msg = ''; }, resultItem),
+      fu.msg ? h('p', { id: 'recheck-msg', tabindex: '-1', role: 'alert', style: 'color:var(--red);font-weight:600' }, fu.msg) : null,
+      fu.result
+        ? h('div', { class: 'feedback ' + (fu.result.isCorrect ? 'f-ok' : 'f-bad'), id: 'recheck-result', tabindex: '-1' },
+            h('p', {}, h('strong', {}, 'Follow-up result: ' + (fu.result.isCorrect ? 'answered correctly.' : 'answered incorrectly.')),
+              fu.result.isCorrect ? '' : ' The correct answer is ' + LETTERS[fu.result.correctIndex] + '.'),
+            h('p', {}, fu.result.explanation),
+            h('p', { class: 'small', style: 'margin-top:8px' },
+              'Diagnostic quiz on this concept: ' + (diag ? (diag.total > 1 ? diag.correctCount+' of '+diag.total+' answered correctly' : (diag.isCorrect ? 'answered correctly' : 'answered incorrectly')) : 'not assessed') +
+              '. Follow-up: ' + (fu.result.isCorrect ? 'answered correctly' : 'answered incorrectly') + '.'),
+            h('p', { class: 'small muted' }, 'This is the result of one question. It does not show mastery or that your learning has improved.'))
+        : h('div', { class: 'row' }, h('button', { class: 'btn btn-primary', type: 'button', onclick: check }, 'Check answer')));
+  }
+
+  function jobProgress(requestState) {
+    return (message) => {
+      if (state !== requestState) return false;
+      if (state.loading) { state.loadingLabel = message; render(); }
+      return true;
+    };
+  }
+  function aggregateQuizResult() {
+    const items = Object.values(state.quizHistory);
+    return items.length ? {items, total:items.length, correctCount:items.filter(i => i.isCorrect).length} : null;
+  }
+  async function retryUnresolvedCoverage() {
+    const topics = state.topics.filter(t => t.evidence && t.evidence.doc === 'Analysis incomplete');
+    if (!topics.length || state.loading) return;
+    const requestState = state;
+    state.loading = true; state.error = null; render();
+    try {
+      const result = await TensorService.analyzeCoverage({...state.inputs,
+        notesDocumentId:state.pdfDocuments.notes ? state.pdfDocuments.notes.document_id : null}, topics, jobProgress(requestState));
+      if (state !== requestState) return;
+      const replacements = new Map(result.topics.map(t => [t.id,t]));
+      state.topics = state.topics.map(t => replacements.has(t.id) ? {...t,...replacements.get(t.id)} : t);
+      state.coverageWarnings = result.warnings;
+      state.notePassages = result.passages;
+    } catch (error) { if (state !== requestState) return; state.error = {title:'Coverage retry failed',items:[error.message]}; }
+    if (state !== requestState) return;
+    state.loading = false; render();
+  }
+  async function createLiveQuiz() {
+    const requestState = state;
+    state.loading = true; state.loadingLabel = 'Preparing quiz…'; state.quiz.error = ''; render();
+    try {
+      const res = await TensorService.runJob('quiz', {
+        course: state.inputs.course, question_count: state.quizCount, topic_offset: state.quizOffset,
+        topics: state.topics.map((t) => ({ id: t.id, name: t.name, syllabus_excerpt: t.source_verified ? (t.syllabus_excerpt || '') : '' }))
+      }, jobProgress(requestState));
+      if (state !== requestState) return;
+      state.liveQuiz = res;
+      state.quiz = { answers: {}, result: null, error: '' };
+      state.liveFollow.error = '';
+      state.loading = false; render(); focusId('view-title');
+    } catch (error) {
+      if (state !== requestState) return;
+      state.loading = false; state.quiz.error = error.message; render(); focusId('live-quiz-error');
+    }
+  }
+  async function submitLiveQuiz() {
+    const questions = state.liveQuiz.questions;
+    if (questions.some((q) => state.quiz.answers[q.id] === undefined)) {
+      state.quiz.error = 'Answer every question before submitting.'; render(); focusId('live-quiz-error'); return;
+    }
+    const requestState = state;
+    state.loading = true; state.loadingLabel = 'Preparing quiz…'; state.quiz.error = ''; render();
+    try {
+      const res = await TensorService.callAPI('/api/quiz/score', { quiz_id: state.liveQuiz.quiz_id, answers: { ...state.quiz.answers } });
+      if (state !== requestState) return;
+      state.quiz.result = res;
+      for (const item of res.items) {
+        state.quizHistory[item.topicId] = item;
+        state.topicQuizSessions[item.topicId] = state.liveQuiz.quiz_id;
+        delete state.liveFollow.questions[item.topicId]; delete state.liveFollow.results[item.topicId]; delete state.liveFollow.answers[item.topicId];
+      }
+      state.loading = false; render(); focusId('live-quiz-summary');
+    } catch (error) {
+      if (state !== requestState) return;
+      state.loading = false; state.quiz.error = error.message; render(); focusId('live-quiz-error');
+    }
+  }
+  function viewLiveQuiz() {
+    if (!state.coverageReady) return pendingLiveView('Diagnostic quiz');
+    const quiz = state.liveQuiz, result = state.quiz.result;
+    return h('div', { class: 'view' },
+      header('Diagnostic quiz', 'Choose a batch of topics. Fixed Java questions are used where available; other topics use labelled AI-generated practice questions. Scoring stays on the server.'),
+      h('div', { class: 'info-box' }, h('strong', {}, 'What this quiz supports'),
+        'Up to 20 topics per batch, one question per topic. Move through batches to assess the confirmed syllabus. AI answers are not independently fact-checked; verify disputed answers with course materials.'),
+      state.loading ? h('p',{role:'status'},state.loadingLabel || 'Preparing quiz…') : null,
+      state.quiz.error ? h('div', { class: 'error-box', id: 'live-quiz-error', tabindex: '-1', role: 'alert' }, state.quiz.error) : null,
+      h('section', {class:'panel stack'},
+        h('p', {}, Object.keys(state.quizHistory).length + ' of ' + state.topics.length + ' topics assessed across completed batches.'),
+        h('label', {for:'quiz-count'}, 'Questions per batch'),
+        h('select', {id:'quiz-count', disabled:state.loading, onchange:e => {state.quizCount=Number(e.target.value); render();}},
+          [5,10,20].map(n => h('option',{value:String(n), selected:state.quizCount===n},String(n)))),
+        h('label', {for:'quiz-start'}, 'Start at topic'),
+        h('select', {id:'quiz-start',disabled:state.loading,onchange:e => {state.quizOffset=Number(e.target.value); render();}},
+          state.topics.map((t,index) => h('option',{value:String(index),selected:state.quizOffset===index},(index+1)+'. '+t.name))),
+        h('p',{class:'small muted'}, 'The selection applies when you create the next quiz. Submitted evidence is retained per topic. A new submission for the same topic replaces its previous diagnostic result.')),
+      !quiz ? h('section', { class: 'panel stack' },
+        h('p', {}, 'Generate a diagnostic and a different follow-up question per selected topic. General-subject questions call Gemini and may take several minutes.'),
+        h('button', { class: 'btn btn-primary', type: 'button', disabled: state.loading, onclick: createLiveQuiz }, state.loading ? 'Creating quiz…' : 'Create diagnostic quiz')) : null,
+      quiz ? [
+        h('p', { class: 'small muted' }, quiz.source),
+        (quiz.warnings || []).map((text) => h('p', { class: 'small muted' }, text)),
+        result ? h('section', { class: 'panel', id: 'live-quiz-summary', tabindex: '-1' },
+          h('h2', {}, result.correctCount + ' of ' + result.total + ' answered correctly'),
+          h('p', {}, 'The report now contains quiz evidence. Notes coverage is unchanged. One answer per topic is limited evidence.')) : null,
+        h('form', { class: 'stack', onsubmit: (event) => { event.preventDefault(); if (!result && !state.loading) submitLiveQuiz(); } },
+          quiz.questions.map((q, index) => {
+            const item = result ? result.items.find((x) => x.questionId === q.id) : null;
+            return h('section', { class: 'panel stack' },
+              h('p', { class: 'small muted' }, 'Topic: ' + topicName(q.topicId)),
+              h('p', {class:'small muted'}, q.source || quiz.source),
+              questionBlock(q, index + 1, 'live-' + q.id, state.quiz.answers[q.id],
+                (value) => { if (!state.loading) state.quiz.answers[q.id] = value; }, item),
+              item ? h('div', { class: 'feedback ' + (item.isCorrect ? 'f-ok' : 'f-bad') },
+                h('strong', {}, item.isCorrect ? 'Correct.' : 'Incorrect.'), item.explanation) : null);
+          }),
+          result ? h('div', { class: 'row' },
+            h('button', { class: 'btn', type: 'button', onclick: () => go('report') }, 'View updated report'),
+            h('button', { class: 'btn btn-primary', type: 'button', onclick: () => go('plan') }, 'Open study roadmap'),
+            h('button', { class: 'btn', type: 'button', disabled: state.loading, onclick: createLiveQuiz }, 'Create selected batch'),
+            quiz.next_offset < state.topics.length ? h('button', {class:'btn',type:'button',disabled:state.loading,onclick:() => {state.quizOffset=quiz.next_offset; createLiveQuiz();}}, 'Next topic batch') : null)
+            : h('button', { class: 'btn btn-primary', type: 'submit', disabled: state.loading }, state.loading ? 'Scoring answers…' : 'Submit answers'))
+      ] : null);
+  }
+  function selectRoadmap(id) {
+    state.roadmapSelected = id; render(); focusId('roadmap-detail-title');
+  }
+  function routeConnector() {
+    const el = h('div', { class: 'route-connector', 'aria-hidden': 'true' });
+    el.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" focusable="false"><path d="M12 1v19m-4-4 4 4 4-4" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+    return el;
+  }
+  function planTask(it) {
+    return h('li', { class: 'plan-item' },
+      h('div', { class: 'plan-head' }, h('h3', {}, it.topic.name), covBadge(it.topic.coverage), h('span', { class: 'plan-min' }, it.minutes + ' min')),
+      h('ul', {}, reasonsFor(it).map((reason) => h('li', {}, reason))),
+      h('p', { class: 'plan-src' }, 'Source: ' + sourceFor(it.topic)),
+      h('button', { class: 'btn btn-small', type: 'button', onclick: () => { state.evidenceId = it.topic.id; go('report'); } }, 'View evidence for ' + it.topic.name));
+  }
+  async function loadLiveFollow(topicId) {
+    const requestState = state;
+    state.loading = true; state.liveFollow.error = ''; render();
+    try {
+      const q = await TensorService.callAPI('/api/quiz/' + encodeURIComponent(state.topicQuizSessions[topicId]) + '/follow-up/' + encodeURIComponent(topicId));
+      if (state !== requestState) return;
+      state.liveFollow.questions[topicId] = q; state.loading = false; render(); focusId('live-recheck-heading');
+    } catch (error) {
+      if (state !== requestState) return;
+      state.loading = false; state.liveFollow.error = error.message; render();
+    }
+  }
+  async function scoreLiveFollow(topicId) {
+    const choice = state.liveFollow.answers[topicId];
+    if (choice === undefined) { state.liveFollow.error = 'Choose a follow-up answer first.'; render(); return; }
+    const requestState = state;
+    state.loading = true; state.liveFollow.error = ''; render();
+    try {
+      const result = await TensorService.callAPI('/api/quiz/recheck', { quiz_id: state.topicQuizSessions[topicId], topic_id: topicId, choice });
+      if (state !== requestState) return;
+      state.liveFollow.results[topicId] = result; state.loading = false; render(); focusId('live-recheck-result');
+    } catch (error) {
+      if (state !== requestState) return;
+      state.loading = false; state.liveFollow.error = error.message; render();
+    }
+  }
+  function liveRecheckSection(topic) {
+    if (!topic) return null;
+    const result = state.liveFollow.results[topic.id], question = state.liveFollow.questions[topic.id];
+    const diagnostic = quizMap().get(topic.id);
+    return h('section', { class: 'panel stack' },
+      h('h2', { id: 'live-recheck-heading', tabindex: '-1' }, 'Recheck: ' + topic.name),
+      h('p', { class: 'small muted' }, 'A different question checks the same concept. Results remain separate from task completion and notes coverage.'),
+      state.liveFollow.error ? h('p', { class: 'error-box', role: 'alert' }, state.liveFollow.error) : null,
+      !Object.keys(state.quizHistory).length ? h('button', { class: 'btn', type: 'button', onclick: () => go('quiz') }, 'Take diagnostic quiz first')
+        : !diagnostic ? h('p', { class: 'muted' }, 'This topic has not been assessed yet. Choose its topic batch in Quiz to enable a paired recheck.')
+        : !question ? h('button', { class: 'btn', type: 'button', disabled: state.loading, onclick: () => loadLiveFollow(topic.id) }, state.loading ? 'Loading question…' : 'Load follow-up question')
+        : [questionBlock(question, 0, 'live-follow-' + topic.id, state.liveFollow.answers[topic.id],
+              (value) => { if (!state.loading) state.liveFollow.answers[topic.id] = value; }, result),
+            result ? h('div', { class: 'feedback ' + (result.isCorrect ? 'f-ok' : 'f-bad'), id: 'live-recheck-result', tabindex: '-1' },
+              h('strong', {}, result.isCorrect ? 'Follow-up answered correctly.' : 'Follow-up answered incorrectly.'),
+              h('p', {}, result.explanation),
+              h('p', { class: 'small' }, 'Diagnostic: ' + (diagnostic.isCorrect ? 'correct' : 'incorrect') + '. Follow-up: ' + (result.isCorrect ? 'correct' : 'incorrect') + '.'),
+              h('p', { class: 'small muted' }, 'One follow-up answer does not establish mastery or prove learning improvement.'))
+            : h('button', { class: 'btn btn-primary', type: 'button', disabled: state.loading, onclick: () => scoreLiveFollow(topic.id) }, state.loading ? 'Checking answer…' : 'Check follow-up answer')]);
+  }
+  function viewLivePlan() {
+    if (!state.coverageReady) return pendingLiveView('Study plan and recheck');
+    const mins = minutesValue();
+    const plan = mins === null ? null : TensorService.buildPlan({ topics: state.topics, quizResult: state.mode === 'live' ? aggregateQuizResult() : state.quiz.result, minutes: mins });
+    const selected = plan && (plan.items.find((it) => it.topic.id === state.roadmapSelected) || plan.items[0]);
+    const studied = plan ? plan.items.filter((it) => state.studyDone[it.topic.id]).length : 0;
+    return h('div', { class: 'view' },
+      header('Study plan and roadmap', 'Priorities combine notes gaps with diagnostic answers. Arrows show suggested study order. Topic blocks include review and practice time.'),
+      h('div', { class: 'notice' }, h('strong', {}, 'How the ranking works'),
+        'Missing notes: 3 points; partial or uncertain coverage: 2; an incorrect diagnostic answer: +3. These are prototype rules, not exam predictions.'),
+      !Object.keys(state.quizHistory).length ? h('p', { class: 'small muted' }, 'Quiz not taken: this plan uses notes coverage only.') : null,
+      field('live-plan-minutes', 'Available study time (minutes)',
+        h('input', { id: 'live-plan-minutes', type: 'number', min: '5', max: '10080', step: '1', value: state.inputs.minutes, disabled: state.loading,
+          onchange: (event) => { state.inputs.minutes = event.target.value; render(); focusId('live-plan-minutes'); } }),
+        'Between 5 and 10,080. Allocations use 5-minute blocks and never exceed this budget.'),
+      !plan ? h('div', { class: 'error-box', role: 'alert' }, 'Enter a whole number between 5 and 10,080.')
+        : !plan.items.length ? h('div', { class: 'empty' }, h('h2', {}, 'Nothing flagged by the current evidence'), h('p', {}, 'This is not proof of mastery. More practice may reveal other gaps.'))
+        : [h('p', { role: 'status' }, plan.totalMinutes + ' of ' + mins + ' minutes allocated. ' + (plan.omitted ? plan.omitted + ' flagged topic(s) do not fit. ' : '') + studied + ' of ' + plan.items.length + ' tasks marked studied.'),
+            h('div', { class: 'row', role: 'group', 'aria-label': 'Study plan view' },
+              h('button', { class: 'btn', type: 'button', 'aria-pressed': state.planView === 'roadmap' ? 'true' : 'false', onclick: () => { state.planView = 'roadmap'; render(); } }, 'Visual roadmap'),
+              h('button', { class: 'btn', type: 'button', 'aria-pressed': state.planView === 'list' ? 'true' : 'false', onclick: () => { state.planView = 'list'; render(); } }, 'List view')),
+            state.planView === 'list' ? h('ol', { class: 'plan-list' }, plan.items.map(planTask))
+              : h('div', { class: 'roadmap-layout' },
+                h('ol', { class: 'roadmap-route', 'aria-label': 'Suggested study sequence' }, plan.items.map((it, index) =>
+                  h('li', {},
+                    h('button', { class: 'route-node' + (selected.topic.id === it.topic.id ? ' route-selected' : ''), type: 'button',
+                      'aria-pressed': selected.topic.id === it.topic.id ? 'true' : 'false', onclick: () => selectRoadmap(it.topic.id) },
+                      h('span', { class: 'small muted' }, 'Step ' + (index + 1) + ' · ' + it.minutes + ' min'),
+                      h('strong', {}, it.topic.name), covBadge(it.topic.coverage), quizBadge(quizMap().get(it.topic.id))),
+                    h('label', { class: 'study-check' }, h('input', { type: 'checkbox', checked: !!state.studyDone[it.topic.id], onchange: (event) => { state.studyDone[it.topic.id] = event.target.checked; render(); } }), 'Mark ' + it.topic.name + ' as studied'),
+                    index < plan.items.length - 1 ? routeConnector() : null))),
+                h('section', { class: 'panel stack' }, h('h2', { id: 'roadmap-detail-title', tabindex: '-1' }, selected.topic.name),
+                  h('p', {}, selected.minutes + ' minutes for review and practice.'),
+                  h('ul', {}, reasonsFor(selected).map((reason) => h('li', {}, reason))),
+                  h('p', { class: 'small' }, 'Source: ' + sourceFor(selected.topic)),
+                  selected.topic.evidence.excerpt ? h('blockquote', { class: 'excerpt' }, selected.topic.evidence.excerpt)
+                    : h('p', { class: 'muted' }, 'No supporting passage was found in the supplied notes. Use your course material or ask your instructor for a reference.'),
+                  h('button', { class: 'btn', type: 'button', onclick: () => { state.evidenceId = selected.topic.id; go('report'); } }, 'Open source evidence'),
+                  h('p', { class: 'small muted' }, 'Marking a task studied is self-reported progress; quiz and recheck results are separate.'))),
+            liveRecheckSection(selected.topic)]);
+  }
+
+  /* ---------- Render ---------- */
+  function render() {
+    const badge = document.querySelector('.mode-badge');
+    badge.replaceChildren(document.createTextNode(state.mode === 'live' ? 'Live analysis' : 'Sample mode'),
+      h('small', {}, state.mode === 'live' ? 'Coverage · quiz · roadmap' : 'Synthetic data, no AI requests'));
+    const map = { inputs: viewInputs, topics: viewTopics, report: viewReport, quiz: viewQuiz, plan: viewPlan };
+    root.replaceChildren(map[state.view]());
+    root.prepend(h('p',{class:'session-notice'},
+      h('strong',{},'Temporary session. '),
+      'Refreshing or closing this tab clears your inputs, report and quiz progress. Moving between Tensor steps keeps your work.'));
+    if (state.loading && TensorService.activeJob) root.prepend(
+      h('div',{class:'notice stack',role:'status'},
+        h('p',{},state.loadingLabel || 'Analysis in progress…'),
+        h('div',{class:'row'},
+          h('button',{class:'btn',type:'button',onclick:stopAnalysis},'Stop analysis'),
+          h('button',{class:'btn',type:'button',onclick:startInstantDemo},'Open sample demo (no AI)'))));
+    if (state.loading) root.querySelectorAll('input, textarea, select').forEach((el) => { el.disabled = true; });
+    renderNav();
+  }
+
+  /* ---------- Reset ---------- */
+  const dlg = document.getElementById('reset-dialog');
+  function doReset() { TensorService.cancelActiveJob().catch(()=>{}); releaseAllPdfs(); state = freshState(); render(); window.scrollTo(0, 0); focusId('view-title'); }
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else if (window.confirm('Reset everything and return to the Inputs step?')) doReset();
+  });
+  dlg.addEventListener('close', () => { if (dlg.returnValue === 'confirm') doReset(); dlg.returnValue = ''; });
+
+  render();
+})();
+</script>
+</body>
+</html>

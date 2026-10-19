@@ -1,0 +1,26 @@
+# Private local configuration
+.env
+.env.*
+!.env.example
+
+# Python environment and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.log
+
+# Editor / operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local documents, backups and upload storage
+upload/
+uploads/
+backups/
+local_backups/
+*.bak
