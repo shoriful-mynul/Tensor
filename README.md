@@ -6,6 +6,10 @@
 
 Tensor compares a student's syllabus, study notes and diagnostic quiz answers to identify preparation gaps and recommend what to study next within the available time.
 
+**[Open Live Demo](https://tensor-ool7.onrender.com/)**
+
+For a quick walkthrough, choose **Open sample demo (no AI)**. Sample results are synthetic; live AI analysis requires available Gemini quota. The first visit may take longer if the free hosting service is asleep.
+
 ## Problem Statement
 
 Students often spend hours studying without knowing which syllabus topics their notes fail to explain. Even when their notes cover a topic, that does not necessarily mean they understand it.
