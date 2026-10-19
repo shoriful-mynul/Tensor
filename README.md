@@ -166,13 +166,23 @@ The frontend requires no npm build process or external CDN assets.
 
 Separate notes-coverage and quiz indicators, with inspectable source evidence.
 
-![Tensor evidence report](evidence-report.png)
+![Tensor evidence report](docs/screenshots/evidence-report.png)
 
 ### Interactive Study Roadmap
 
 Prioritised study tasks with explanations, time allocations and a concept recheck.
 
-![Tensor interactive study roadmap](study-roadmap.png)
+![Tensor interactive study roadmap](docs/screenshots/study-roadmap.png)
+
+Additional prioritised tasks and their supporting notes and quiz evidence:
+
+![Tensor study roadmap details](docs/screenshots/study-roadmap-details.png)
+
+### Concept Recheck
+
+A different follow-up question checks the same concept after revision.
+
+![Tensor concept recheck](docs/screenshots/concept-recheck.png)
 
 ## Project Structure
 
